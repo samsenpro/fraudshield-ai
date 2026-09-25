@@ -1,48 +1,44 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
-import { FraudCase, FraudCaseDecision } from '../../core/models/fraud-case.model';
+import { I18N_PIPES } from '../../core/i18n/i18n.pipes';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { FraudCase, FraudCaseDecision, FraudCaseStatus } from '../../core/models/fraud-case.model';
 import { FraudCaseService } from '../../core/services/fraud-case.service';
-import { StatusChipComponent } from '../../shared/status-chip/status-chip.component';
+import { shortRef, statusLabel } from '../../core/ui/risk';
+import { IconComponent } from '../../shared/icon/icon.component';
+import { EmptyStateComponent, ErrorStateComponent } from '../../shared/states/states.component';
+import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { ToastService } from '../../shared/toast/toast.service';
 
 const DECISIONS: FraudCaseDecision[] = ['CONFIRMED_FRAUD', 'FALSE_POSITIVE', 'UNDETERMINED'];
+const STEPS: FraudCaseStatus[] = ['OPEN', 'IN_REVIEW', 'RESOLVED'];
 
 @Component({
   selector: 'app-fraud-case-detail',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule,
-    StatusChipComponent,
-  ],
+  imports: [RouterLink, ReactiveFormsModule, IconComponent, StatusBadgeComponent, EmptyStateComponent, ErrorStateComponent, ...I18N_PIPES],
   templateUrl: './fraud-case-detail.component.html',
   styleUrl: './fraud-case-detail.component.scss',
 })
 export class FraudCaseDetailComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
 
   readonly decisions = DECISIONS;
+  readonly steps = STEPS;
+  readonly statusLabel = statusLabel;
+  readonly shortRef = shortRef;
+
   readonly loading = signal(true);
+  readonly failed = signal(false);
   readonly fraudCase = signal<FraudCase | null>(null);
   readonly working = signal(false);
   readonly actionError = signal<string | null>(null);
+
+  readonly stepIndex = computed(() => STEPS.indexOf(this.fraudCase()?.status ?? 'OPEN'));
 
   readonly resolveForm = this.fb.group({
     decision: ['UNDETERMINED' as FraudCaseDecision, Validators.required],
@@ -63,12 +59,16 @@ export class FraudCaseDetailComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
+    this.failed.set(false);
     this.fraudCaseService.get(this.caseId).subscribe({
       next: (fraudCase) => {
         this.fraudCase.set(fraudCase);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: (err) => {
+        this.failed.set(err?.status !== 404);
+        this.loading.set(false);
+      },
     });
   }
 
@@ -79,10 +79,11 @@ export class FraudCaseDetailComponent implements OnInit {
       next: (fraudCase) => {
         this.fraudCase.set(fraudCase);
         this.working.set(false);
+        this.toast.success(this.i18n.t('caseDetail.assigned'), this.i18n.t('caseDetail.assignedText'));
       },
       error: (err) => {
         this.working.set(false);
-        this.actionError.set(err?.error?.message ?? 'Could not take this case for review.');
+        this.actionError.set(err?.error?.message ?? this.i18n.t('caseDetail.takeError'));
       },
     });
   }
@@ -99,10 +100,14 @@ export class FraudCaseDetailComponent implements OnInit {
       next: (fraudCase) => {
         this.fraudCase.set(fraudCase);
         this.working.set(false);
+        this.toast.success(
+          this.i18n.t('caseDetail.resolvedToast'),
+          this.i18n.t('caseDetail.resolvedToastText', { decision: this.i18n.lit(statusLabel(decision!)) }),
+        );
       },
       error: (err) => {
         this.working.set(false);
-        this.actionError.set(err?.error?.message ?? 'Could not resolve this case.');
+        this.actionError.set(err?.error?.message ?? this.i18n.t('caseDetail.resolveError'));
       },
     });
   }

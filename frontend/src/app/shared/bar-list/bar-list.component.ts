@@ -1,97 +1,109 @@
 import { Component, Input } from '@angular/core';
-import { NgClass } from '@angular/common';
 
-export interface BarItem {
-  label: string;
-  value: number;
-  colorClass?: 'gray' | 'blue' | 'green' | 'orange' | 'red';
-}
+import { LiteralPipe } from '../../core/i18n/i18n.pipes';
+import { BarDatum } from '../../core/ui/view-models';
 
+/**
+ * Labelled horizontal bars. `stacked` puts label + value above a 6px track
+ * (fraud categories, risk factors); `inline` is the 120px | track | 50px row
+ * used for regional risk.
+ */
 @Component({
   selector: 'app-bar-list',
   standalone: true,
-  imports: [NgClass],
+  imports: [LiteralPipe],
   template: `
-    <div class="bar-list">
-      @for (item of items; track item.label) {
-        <div class="bar-list__row">
-          <span class="bar-list__label">{{ item.label }}</span>
-          <div class="bar-list__track">
+    @for (item of items; track item.label; let i = $index) {
+      @if (layout === 'stacked') {
+        <div class="bar">
+          <div class="bar__head">
+            <span class="bar__label">{{ item.label | lit }}</span>
+            <span class="bar__value">{{ (item.display | lit) || item.value + '%' }}</span>
+          </div>
+          <div class="track" [class.track--thin]="thickness === 'thin'">
             <div
-              class="bar-list__fill"
-              [ngClass]="'bar-list__fill--' + (item.colorClass ?? 'blue')"
-              [style.width.%]="widthPercent(item.value)"
+              class="track__fill"
+              [style.width.%]="widthOf(item)"
+              [style.background]="item.color ?? color"
+              [style.animation-delay.ms]="i * 60"
             ></div>
           </div>
-          <span class="bar-list__value">{{ item.value }}</span>
         </div>
-      } @empty {
-        <p class="bar-list__empty">No data yet.</p>
+      } @else {
+        <div class="bar bar--inline">
+          <span class="bar__label bar__label--strong">{{ item.label | lit }}</span>
+          <div class="track track--thick">
+            <div
+              class="track__fill"
+              [style.width.%]="widthOf(item)"
+              [style.background]="item.color ?? color"
+              [style.animation-delay.ms]="i * 60"
+            ></div>
+          </div>
+          <span class="bar__value bar__value--end">{{ (item.display | lit) || item.value + '%' }}</span>
+        </div>
       }
-    </div>
+    }
   `,
   styles: [
     `
-      .bar-list {
+      :host {
         display: flex;
         flex-direction: column;
+        gap: var(--bar-gap, 11px);
+      }
+      .bar__head {
+        display: flex;
+        justify-content: space-between;
         gap: 10px;
+        font-size: 12px;
+        margin-bottom: 4px;
       }
-      .bar-list__row {
-        display: grid;
-        grid-template-columns: 110px 1fr 40px;
-        align-items: center;
-        gap: 8px;
-      }
-      .bar-list__label {
-        font-size: 13px;
-        color: #455a64;
-        text-transform: capitalize;
-      }
-      .bar-list__track {
-        height: 10px;
-        border-radius: 6px;
-        background: #eceff1;
+      .bar__label {
+        color: var(--color-neutral-800);
+        min-width: 0;
         overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
-      .bar-list__fill {
-        height: 100%;
-        border-radius: 6px;
-        transition: width 0.2s ease;
+      .bar__label--strong {
+        color: var(--color-text);
+        font-size: 12.5px;
       }
-      .bar-list__fill--gray {
-        background: #90a4ae;
-      }
-      .bar-list__fill--blue {
-        background: #42a5f5;
-      }
-      .bar-list__fill--green {
-        background: #66bb6a;
-      }
-      .bar-list__fill--orange {
-        background: #ffa726;
-      }
-      .bar-list__fill--red {
-        background: #ef5350;
-      }
-      .bar-list__value {
-        text-align: right;
-        font-size: 13px;
+      .bar__value {
+        color: var(--color-neutral-700);
         font-weight: 600;
-        color: #37474f;
+        white-space: nowrap;
       }
-      .bar-list__empty {
-        color: #90a4ae;
-        font-size: 13px;
+      .bar--inline {
+        display: grid;
+        grid-template-columns: 120px 1fr 50px;
+        gap: 10px;
+        align-items: center;
+      }
+      .bar__value--end {
+        font-size: 12px;
+        font-weight: 400;
+        text-align: right;
+      }
+      @media (max-width: 480px) {
+        .bar--inline {
+          grid-template-columns: 96px 1fr 40px;
+        }
       }
     `,
   ],
 })
 export class BarListComponent {
-  @Input() items: BarItem[] = [];
+  @Input() items: BarDatum[] = [];
+  @Input() layout: 'stacked' | 'inline' = 'stacked';
+  @Input() thickness: 'thin' | 'normal' = 'normal';
+  @Input() color = 'var(--color-accent)';
+  /** When set, widths scale against this max instead of being percentages. */
+  @Input() max: number | null = null;
 
-  widthPercent(value: number): number {
-    const max = Math.max(...this.items.map((i) => i.value), 1);
-    return (value / max) * 100;
+  widthOf(item: BarDatum): number {
+    const max = this.max ?? 100;
+    return max > 0 ? Math.min(100, (item.value / max) * 100) : 0;
   }
 }

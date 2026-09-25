@@ -1,26 +1,214 @@
-<h1 class="page-title">Dashboard</h1>
+<div class="page page--dashboard page-enter">
+  <app-page-header [title]="'dashboard.title' | t" [subtitle]="'dashboard.subtitle' | t">
+    <app-segmented
+      [options]="ranges()"
+      [value]="range()"
+      (valueChange)="setRange($event)"
+      [ariaLabel]="'dashboard.timeRange' | t"
+    ></app-segmented>
+    <button type="button" class="btn btn-secondary" (click)="export()" [disabled]="loading()">
+      <app-icon name="download" [size]="14"></app-icon>
+      {{ 'common.export' | t }}
+    </button>
+  </app-page-header>
 
-@if (loading()) {
-  <mat-spinner diameter="32"></mat-spinner>
-} @else {
-  @if (analytics(); as a) {
-    <div class="tiles">
-      <app-stat-tile label="Analyzed" [value]="a.transactionsAnalyzed"></app-stat-tile>
-      <app-stat-tile label="Approved" [value]="a.approved"></app-stat-tile>
-      <app-stat-tile label="Under review" [value]="a.underReview"></app-stat-tile>
-      <app-stat-tile label="Blocked" [value]="a.blocked"></app-stat-tile>
-      <app-stat-tile label="Fraud alerts" [value]="a.fraudAlerts"></app-stat-tile>
-      <app-stat-tile label="Fraud cases" [value]="a.fraudCases"></app-stat-tile>
-      <app-stat-tile label="False positives" [value]="a.falsePositives"></app-stat-tile>
-      <app-stat-tile label="Avg. risk score" [value]="a.averageRiskScore.toFixed(2)"></app-stat-tile>
-      <app-stat-tile label="Avg. analysis time" [value]="a.averageAnalysisTimeMs.toFixed(0) + ' ms'"></app-stat-tile>
+  @if (!loading() && sample()) {
+    <div class="notice" [class.notice--warning]="apiDown()" [class.notice--info]="!apiDown()" role="status">
+      <app-icon [name]="apiDown() ? 'wifi-off' : 'info'" [size]="16"></app-icon>
+      <div class="notice__body">
+        <div class="notice__title">{{ (apiDown() ? 'common.liveUnavailable' : 'common.showingSample') | t }}</div>
+        {{ (apiDown() ? 'dashboard.apiDownText' : 'dashboard.emptyText') | t }}
+      </div>
+      @if (apiDown()) {
+        <button type="button" class="btn btn-secondary btn-sm" (click)="load()">
+          <app-icon name="refresh" [size]="13"></app-icon>
+          {{ 'common.retry' | t }}
+        </button>
+      } @else {
+        <a routerLink="/transactions" class="btn btn-secondary btn-sm">{{ 'common.newTransaction' | t }}</a>
+      }
     </div>
-
-    <mat-card class="chart-card">
-      <h2>Transactions over time (last 14 days)</h2>
-      <app-bar-list [items]="transactionsOverTime()"></app-bar-list>
-    </mat-card>
-  } @else {
-    <p>Could not load analytics.</p>
   }
-}
+
+  <!-- KPI row -->
+  <div class="grid grid--kpi">
+    @if (kpis(); as list) {
+      @for (kpi of list; track kpi.label; let i = $index) {
+        <app-kpi-card [kpi]="kpi" [style.animation-delay.ms]="i * 50"></app-kpi-card>
+      }
+    } @else {
+      @for (i of [0, 1, 2, 3, 4, 5]; track i) {
+        <app-kpi-card></app-kpi-card>
+      }
+    }
+  </div>
+
+  <!-- trend + risk distribution -->
+  <div class="grid grid--2-1">
+    <section class="panel">
+      <div class="panel__head panel__head--tight">
+        <h3 class="panel__title">{{ trend().title }}</h3>
+        <span class="panel__meta">{{ trend().meta }}</span>
+      </div>
+      @if (loading()) {
+        <span class="skeleton chart-skeleton"></span>
+      } @else if (trend().points.length) {
+        <app-line-chart [data]="trend().points" [unit]="trend().unit" [ariaLabel]="trend().title"></app-line-chart>
+      } @else {
+        <app-empty-state icon="activity" [title]="'dashboard.noActivity' | t" [text]="'dashboard.noActivityText' | t"></app-empty-state>
+      }
+    </section>
+
+    <section class="panel panel--column">
+      <h3 class="panel__title risk-title">{{ 'dashboard.riskDistribution' | t }}</h3>
+      @if (loading()) {
+        <div class="donut-skeleton"><span class="skeleton"></span></div>
+      } @else {
+        <app-donut-chart [slices]="riskSlices()" [centerValue]="avgRisk()" [centerLabel]="'dashboard.avgScore' | t"></app-donut-chart>
+      }
+    </section>
+  </div>
+
+  <!-- volume + categories -->
+  <div class="grid grid--13-1">
+    <section class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">{{ 'dashboard.volume' | t }}</h3>
+      </div>
+      @if (loading()) {
+        <span class="skeleton chart-skeleton chart-skeleton--bars"></span>
+      } @else {
+        <app-bar-chart [data]="volume().points" [suffix]="volume().suffix" [ariaLabel]="'dashboard.volumeAria' | t"></app-bar-chart>
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">{{ 'dashboard.byCategory' | t }}</h3>
+      </div>
+      <app-bar-list [items]="categories"></app-bar-list>
+    </section>
+  </div>
+
+  <!-- heatmap -->
+  <section class="panel">
+    <div class="panel__head">
+      <h3 class="panel__title">{{ 'dashboard.heatmap' | t }}</h3>
+      <span class="panel__meta">{{ 'dashboard.heatmapMeta' | t }}</span>
+    </div>
+    <app-heatmap [values]="heatmap"></app-heatmap>
+  </section>
+
+  <!-- alerts + model status -->
+  <div class="grid grid--14-1">
+    <section class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">{{ 'dashboard.activeAlerts' | t }}</h3>
+        <a routerLink="/alerts" class="panel__link">{{ 'shell.viewAll' | t }}</a>
+      </div>
+      @if (loading()) {
+        <app-skeleton-rows [rows]="3" [cols]="2"></app-skeleton-rows>
+      } @else {
+        <div class="alert-feed">
+          @for (a of alerts(); track a.id; let i = $index) {
+            <button
+              type="button"
+              class="alert-feed__item"
+              [style.border-left-color]="severityColor[a.severity]"
+              [style.animation-delay.ms]="i * 70"
+              (click)="openAlert(a)"
+            >
+              <app-icon name="alert" [size]="16" [color]="severityColor[a.severity]" class="alert-feed__icon"></app-icon>
+              <span class="alert-feed__body">
+                <span class="alert-feed__row">
+                  <span class="severity" [style.color]="severityColor[a.severity]">{{ a.severity | lit }}</span>
+                  <span class="alert-feed__time">{{ a.createdAt | fsDate: 'ago' }}</span>
+                </span>
+                <span class="alert-feed__title">{{ a.title | lit }}</span>
+                <span class="alert-feed__meta">
+                  {{ a.txRef }} ·
+                  @if (a.risk !== null) {
+                    {{ 'dashboard.riskScore' | t: { n: a.risk } }}
+                  } @else {
+                    {{ a.status | lit }}
+                  }
+                </span>
+              </span>
+            </button>
+          } @empty {
+            <app-empty-state icon="shield-check" [title]="'dashboard.noAlerts' | t" [text]="'dashboard.noAlertsText' | t"></app-empty-state>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">{{ 'dashboard.modelStatus' | t }}</h3>
+      </div>
+      <div class="model-list">
+        @for (m of modelStatus; track m.name) {
+          <div>
+            <div class="model-list__head">
+              <span class="model-list__name">{{ m.name | lit }}</span>
+              <span class="badge badge--success badge--sm">{{ m.status | lit }}</span>
+            </div>
+            <div class="track track--thin">
+              <div class="track__fill" [style.width.%]="m.accuracy" style="background: var(--color-accent-2)"></div>
+            </div>
+            <div class="model-list__meta">{{ 'dashboard.accuracy' | t: { n: m.accuracy } }}</div>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+
+  <!-- recent transactions -->
+  <section class="panel">
+    <div class="panel__head">
+      <h3 class="panel__title">{{ 'dashboard.recent' | t }}</h3>
+      <a routerLink="/transactions" class="panel__link">{{ 'shell.viewAll' | t }}</a>
+    </div>
+    @if (loading()) {
+      <app-skeleton-rows [rows]="6" [cols]="5"></app-skeleton-rows>
+    } @else if (recent().length) {
+      <div class="table-wrap">
+        <table class="table" style="min-width: 640px">
+          <thead>
+            <tr>
+              <th>{{ 'dashboard.colId' | t }}</th>
+              <th>{{ (sample() ? 'dashboard.colUser' : 'dashboard.colMerchant') | t }}</th>
+              <th>{{ 'dashboard.colAmount' | t }}</th>
+              <th>{{ 'dashboard.colRisk' | t }}</th>
+              <th>{{ 'dashboard.colStatus' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of recent(); track t.id) {
+              <tr class="is-clickable" tabindex="0" (click)="openTransaction(t)" (keydown.enter)="openTransaction(t)">
+                <td class="mono">{{ t.ref }}</td>
+                <td>{{ t.party }}</td>
+                <td>{{ t.amount | fsMoney: t.currency }}</td>
+                <td>
+                  @if (t.risk !== null) {
+                    <span class="risk-value" [style.color]="riskColorOf(t.risk)">{{ t.risk }}%</span>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td><app-status-badge [status]="t.status"></app-status-badge></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <app-empty-state icon="transactions" [title]="'dashboard.noTransactions' | t" [text]="'dashboard.noTransactionsText' | t">
+        <a routerLink="/transactions" class="btn btn-primary btn-sm">
+          <app-icon name="plus" [size]="14"></app-icon>
+          {{ 'common.newTransaction' | t }}
+        </a>
+      </app-empty-state>
+    }
+  </section>
+</div>

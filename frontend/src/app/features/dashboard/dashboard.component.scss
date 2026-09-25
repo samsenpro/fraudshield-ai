@@ -1,0 +1,122 @@
+.risk-title {
+  margin-bottom: 12px;
+}
+
+.chart-skeleton {
+  height: clamp(170px, 22vw, 240px);
+  width: 100%;
+}
+
+.chart-skeleton--bars {
+  height: clamp(150px, 18vw, 200px);
+}
+
+.donut-skeleton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+
+  .skeleton {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+  }
+}
+
+/* active fraud alerts */
+.alert-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alert-feed__item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--color-neutral-100);
+  border: 0;
+  border-left: 2px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  animation: fs-fade-up 0.3s var(--ease-out) backwards;
+  transition: background 0.15s, transform 0.15s var(--ease-out);
+}
+
+.alert-feed__item:hover {
+  background: var(--color-neutral-200);
+  transform: translateX(2px);
+}
+
+.alert-feed__item:active {
+  background: var(--color-neutral-300);
+}
+
+.alert-feed__icon {
+  margin-top: 1px;
+}
+
+.alert-feed__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.alert-feed__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.alert-feed__time {
+  font-size: 11px;
+  color: var(--color-neutral-700);
+  flex: none;
+}
+
+.alert-feed__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 2px 0;
+}
+
+.alert-feed__meta {
+  font-size: 11.5px;
+  color: var(--color-neutral-700);
+}
+
+/* AI model status */
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.model-list__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-bottom: 5px;
+}
+
+.model-list__name {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.model-list__meta {
+  font-size: 10.5px;
+  color: var(--color-neutral-700);
+  margin-top: 3px;
+}
+
+.risk-value {
+  font-weight: 700;
+}

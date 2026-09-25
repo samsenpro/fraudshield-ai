@@ -1,113 +1,208 @@
-<div class="page-toolbar">
-  <h1 class="page-title">Transactions</h1>
-  <button mat-flat-button color="primary" (click)="toggleForm()">
-    <mat-icon>add</mat-icon>
-    New transaction
-  </button>
+<div class="page page-enter">
+  <app-page-header [title]="'transactions.title' | t" [subtitle]="'transactions.subtitle' | t">
+    <button type="button" class="btn btn-primary" (click)="toggleForm()">
+      <app-icon name="plus" [size]="14"></app-icon>
+      {{ 'common.newTransaction' | t }}
+    </button>
+  </app-page-header>
+
+  <div class="grid grid--stats">
+    @if (visibleStats(); as list) {
+      @for (s of list; track s.label; let i = $index) {
+        <app-stat-tile [label]="s.label" [value]="s.value" [color]="s.color" [style.animation-delay.ms]="i * 50"></app-stat-tile>
+      }
+    } @else {
+      @for (i of [0, 1, 2, 3]; track i) {
+        <app-stat-tile [loading]="true"></app-stat-tile>
+      }
+    }
+  </div>
+
+  @if (sample()) {
+    <div class="notice" [class.notice--warning]="failed()" [class.notice--info]="!failed()" role="status">
+      <app-icon [name]="failed() ? 'wifi-off' : 'info'" [size]="16"></app-icon>
+      <div class="notice__body">
+        <div class="notice__title">{{ (failed() ? 'common.liveUnavailable' : 'common.showingSample') | t }}</div>
+        {{ (failed() ? 'transactions.apiDownText' : 'transactions.emptyText') | t }}
+      </div>
+      @if (failed()) {
+        <button type="button" class="btn btn-secondary btn-sm" (click)="load()">
+          <app-icon name="refresh" [size]="13"></app-icon>
+          {{ 'common.retry' | t }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="toolbar">
+    <label class="search">
+      <app-icon name="search" [size]="14"></app-icon>
+      <span class="sr-only">{{ 'transactions.search' | t }}</span>
+      <input
+        class="input"
+        type="search"
+        [placeholder]="'transactions.searchPlaceholder' | t"
+        [value]="search()"
+        (input)="onSearch($event)"
+      />
+    </label>
+    <app-segmented
+      size="sm"
+      [options]="riskFilters()"
+      [value]="riskFilter()"
+      (valueChange)="setRiskFilter($event)"
+      [ariaLabel]="'transactions.filterRisk' | t"
+    ></app-segmented>
+    <button type="button" class="btn btn-secondary" (click)="export()" [disabled]="loading() || visibleRows().length === 0">
+      <app-icon name="download" [size]="14"></app-icon>
+      {{ 'common.export' | t }}
+    </button>
+  </div>
+
+  <div class="panel panel--flush">
+    @if (loading()) {
+      <app-skeleton-rows [rows]="pageSize() > 10 ? 10 : pageSize()" [cols]="7"></app-skeleton-rows>
+    } @else if (visibleRows().length) {
+      <div class="table-wrap">
+        <table class="table table--padded" style="min-width: 920px">
+          <thead>
+            <tr>
+              <th>{{ 'transactions.colId' | t }}</th>
+              <th>{{ 'transactions.colDate' | t }}</th>
+              <th>{{ (sample() ? 'transactions.colUser' : 'transactions.colMerchant') | t }}</th>
+              <th>{{ 'transactions.colAmount' | t }}</th>
+              <th>{{ 'transactions.colRisk' | t }}</th>
+              <th>{{ (sample() ? 'transactions.colProbability' : 'transactions.colConfidence') | t }}</th>
+              <th>{{ 'transactions.colStatus' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of visibleRows(); track t.id) {
+              <tr
+                class="is-clickable"
+                tabindex="0"
+                (click)="openDetail(t)"
+                (keydown.enter)="openDetail(t)"
+                [attr.aria-label]="'transactions.open' | t: { ref: t.ref }"
+              >
+                <td class="mono">{{ t.ref }}</td>
+                <td class="cell-sub nowrap">{{ t.occurredAt | fsDate }}</td>
+                <td>
+                  <div>{{ t.party }}</div>
+                  @if (t.partySub) {
+                    <div class="cell-sub">{{ t.partySub }}</div>
+                  }
+                </td>
+                <td class="cell-strong nowrap">{{ t.amount | fsMoney: t.currency }}</td>
+                <td><app-risk-meter [score]="t.risk"></app-risk-meter></td>
+                <td class="prob">{{ t.probability !== null ? t.probability + '%' : '—' }}</td>
+                <td><app-status-badge [status]="t.status"></app-status-badge></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (isFiltered()) {
+      <app-empty-state icon="search" [title]="'transactions.noMatch' | t" [text]="'transactions.noMatchText' | t">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="clearFilters()">{{ 'common.clearFilters' | t }}</button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state icon="transactions" [title]="'transactions.none' | t" [text]="'transactions.noneText' | t"></app-empty-state>
+    }
+  </div>
+
+  @if (sample()) {
+    <div class="table-foot">
+      <span>{{ 'common.showing' | t: { from: 1, to: visibleRows().length, total: (totalLabel() | fsNumber), noun: ('transactions.noun' | t) } }}</span>
+      <div class="table-foot__pager">
+        <button type="button" class="pager-btn" disabled>{{ 'common.previous' | t }}</button>
+        <button type="button" class="pager-btn pager-btn--next" disabled>{{ 'common.next' | t }}</button>
+      </div>
+    </div>
+  } @else {
+    <app-paginator
+      [length]="totalElements()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [disabled]="loading()"
+      [noun]="'transactions.noun' | t"
+      (page)="onPage($event)"
+    ></app-paginator>
+  }
 </div>
 
 @if (showForm()) {
-  <mat-card class="form-card">
-    <h2>Create a transaction</h2>
-    <form [formGroup]="form" (ngSubmit)="submit()" class="transaction-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Account ID</mat-label>
-        <input matInput formControlName="accountId" placeholder="uuid" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Amount</mat-label>
-        <input matInput type="number" formControlName="amount" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Currency</mat-label>
-        <input matInput formControlName="currency" maxlength="3" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Merchant</mat-label>
-        <input matInput formControlName="merchant" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Country</mat-label>
-        <input matInput formControlName="country" maxlength="2" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>City</mat-label>
-        <input matInput formControlName="city" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Device ID</mat-label>
-        <input matInput formControlName="deviceId" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>IP address</mat-label>
-        <input matInput formControlName="ipAddress" />
-      </mat-form-field>
-
-      @if (formError()) {
-        <p class="form-error">{{ formError() }}</p>
-      }
-
-      <div class="transaction-form__actions">
-        <button mat-button type="button" (click)="toggleForm()">Cancel</button>
-        <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || submitting()">
-          Submit
-        </button>
+  <app-dialog
+    [title]="'transactions.dialogTitle' | t"
+    [subtitle]="'transactions.dialogSubtitle' | t"
+    [wide]="true"
+    (closed)="toggleForm()"
+  >
+    <form id="tx-form" [formGroup]="form" (ngSubmit)="submit()" class="form-grid form-grid--2" novalidate>
+      <div class="field field--span">
+        <label for="tx-account">{{ 'transactions.accountId' | t }}</label>
+        <input id="tx-account" class="input" formControlName="accountId" placeholder="uuid" />
+        @if (invalid('accountId')) {
+          <span class="field__error">{{ 'transactions.accountRequired' | t }}</span>
+        }
       </div>
+      <div class="field">
+        <label for="tx-amount">{{ 'transactions.amount' | t }}</label>
+        <input id="tx-amount" class="input" type="number" min="0" step="0.01" formControlName="amount" />
+        @if (invalid('amount')) {
+          <span class="field__error">{{ 'transactions.amountInvalid' | t }}</span>
+        }
+      </div>
+      <div class="field">
+        <label for="tx-currency">{{ 'transactions.currency' | t }}</label>
+        <input id="tx-currency" class="input" formControlName="currency" maxlength="3" />
+        @if (invalid('currency')) {
+          <span class="field__error">{{ 'transactions.currencyInvalid' | t }}</span>
+        }
+      </div>
+      <div class="field">
+        <label for="tx-merchant">{{ 'transactions.merchant' | t }}</label>
+        <input id="tx-merchant" class="input" formControlName="merchant" />
+        @if (invalid('merchant')) {
+          <span class="field__error">{{ 'transactions.merchantRequired' | t }}</span>
+        }
+      </div>
+      <div class="field">
+        <label for="tx-country">{{ 'transactions.country' | t }}</label>
+        <input id="tx-country" class="input" formControlName="country" maxlength="2" />
+        @if (invalid('country')) {
+          <span class="field__error">{{ 'transactions.countryInvalid' | t }}</span>
+        }
+      </div>
+      <div class="field">
+        <label for="tx-city">{{ 'transactions.city' | t }}</label>
+        <input id="tx-city" class="input" formControlName="city" />
+      </div>
+      <div class="field">
+        <label for="tx-device">{{ 'transactions.deviceId' | t }}</label>
+        <input id="tx-device" class="input" formControlName="deviceId" />
+      </div>
+      <div class="field field--span">
+        <label for="tx-ip">{{ 'transactions.ipAddress' | t }}</label>
+        <input id="tx-ip" class="input" formControlName="ipAddress" />
+      </div>
+      @if (formError()) {
+        <div class="notice notice--danger field--span" role="alert">
+          <app-icon name="alert" [size]="16"></app-icon>
+          <div class="notice__body">{{ formError() }}</div>
+        </div>
+      }
     </form>
-  </mat-card>
+    <div dialog-actions>
+      <button type="button" class="btn btn-secondary" (click)="toggleForm()">{{ 'common.cancel' | t }}</button>
+      <button type="submit" form="tx-form" class="btn btn-primary" [disabled]="submitting()">
+        @if (submitting()) {
+          <span class="spinner"></span>
+          {{ 'transactions.submitting' | t }}
+        } @else {
+          {{ 'transactions.submit' | t }}
+        }
+      </button>
+    </div>
+  </app-dialog>
 }
-
-<mat-card class="table-card">
-  @if (loading()) {
-    <mat-spinner diameter="32"></mat-spinner>
-  } @else {
-    <table mat-table [dataSource]="transactions()">
-      <ng-container matColumnDef="merchant">
-        <th mat-header-cell *matHeaderCellDef>Merchant</th>
-        <td mat-cell *matCellDef="let t">{{ t.merchant }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="amount">
-        <th mat-header-cell *matHeaderCellDef>Amount</th>
-        <td mat-cell *matCellDef="let t">{{ t.amount | number: '1.2-2' }} {{ t.currency }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="country">
-        <th mat-header-cell *matHeaderCellDef>Location</th>
-        <td mat-cell *matCellDef="let t">{{ t.city ? t.city + ', ' : '' }}{{ t.country }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef>Status</th>
-        <td mat-cell *matCellDef="let t"><app-status-chip [status]="t.status"></app-status-chip></td>
-      </ng-container>
-
-      <ng-container matColumnDef="occurredAt">
-        <th mat-header-cell *matHeaderCellDef>Date</th>
-        <td mat-cell *matCellDef="let t">{{ t.occurredAt | date: 'short' }}</td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="columns"></tr>
-      <tr mat-row *matRowDef="let row; columns: columns" class="clickable-row" (click)="openDetail(row)"></tr>
-    </table>
-
-    @if (transactions().length === 0) {
-      <p class="empty-state">No transactions yet.</p>
-    }
-
-    <mat-paginator
-      [length]="totalElements()"
-      [pageSize]="pageSize()"
-      [pageIndex]="pageIndex()"
-      [pageSizeOptions]="[10, 20, 50]"
-      (page)="onPage($event)"
-    ></mat-paginator>
-  }
-</mat-card>

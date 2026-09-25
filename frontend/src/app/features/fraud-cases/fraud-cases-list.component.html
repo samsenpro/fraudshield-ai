@@ -1,57 +1,75 @@
-<h1 class="page-title">Fraud Cases</h1>
+<div class="page page-enter">
+  <app-fraud-overview></app-fraud-overview>
 
-<mat-card class="table-card">
-  @if (loading()) {
-    <mat-spinner diameter="32"></mat-spinner>
-  } @else {
-    <table mat-table [dataSource]="cases()">
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef>Status</th>
-        <td mat-cell *matCellDef="let c"><app-status-chip [status]="c.status"></app-status-chip></td>
-      </ng-container>
-
-      <ng-container matColumnDef="decision">
-        <th mat-header-cell *matHeaderCellDef>Decision</th>
-        <td mat-cell *matCellDef="let c">
-          @if (c.decision) {
-            <app-status-chip [status]="c.decision"></app-status-chip>
-          } @else {
-            <span class="muted">—</span>
-          }
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="assignedReviewerName">
-        <th mat-header-cell *matHeaderCellDef>Reviewer</th>
-        <td mat-cell *matCellDef="let c">{{ c.assignedReviewerName ?? 'Unassigned' }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="createdAt">
-        <th mat-header-cell *matHeaderCellDef>Opened</th>
-        <td mat-cell *matCellDef="let c">{{ c.createdAt | date: 'short' }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let c">
-          <button mat-stroked-button color="primary" (click)="openDetail(c)">View</button>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="columns"></tr>
-      <tr mat-row *matRowDef="let row; columns: columns"></tr>
-    </table>
-
-    @if (cases().length === 0) {
-      <p class="empty-state">No fraud cases yet.</p>
+  <div class="panel panel--flush">
+    @if (loading()) {
+      <app-skeleton-rows [rows]="5" [cols]="6"></app-skeleton-rows>
+    } @else if (failed()) {
+      <app-error-state [title]="'cases.loadError' | t" (retry)="load()"></app-error-state>
+    } @else if (cases().length) {
+      <div class="table-wrap">
+        <table class="table table--padded" style="min-width: 760px">
+          <thead>
+            <tr>
+              <th>{{ 'cases.colCase' | t }}</th>
+              <th>{{ 'cases.colTransaction' | t }}</th>
+              <th>{{ 'cases.colStatus' | t }}</th>
+              <th>{{ 'cases.colDecision' | t }}</th>
+              <th>{{ 'cases.colReviewer' | t }}</th>
+              <th>{{ 'cases.colOpened' | t }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of cases(); track c.id) {
+              <tr class="is-clickable" tabindex="0" (click)="openDetail(c)" (keydown.enter)="openDetail(c)">
+                <td class="mono">{{ shortRef('CASE', c.id) }}</td>
+                <td class="mono cell-sub">{{ shortRef('TX', c.transactionId) }}</td>
+                <td><app-status-badge [status]="c.status"></app-status-badge></td>
+                <td>
+                  @if (c.decision) {
+                    <app-status-badge [status]="c.decision"></app-status-badge>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td>
+                  @if (c.assignedReviewerName) {
+                    {{ c.assignedReviewerName }}
+                  } @else {
+                    <span class="muted">{{ 'common.unassigned' | t }}</span>
+                  }
+                </td>
+                <td class="cell-sub nowrap">{{ c.createdAt | fsDate }}</td>
+                <td class="cell-end">
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="$event.stopPropagation(); openDetail(c)">
+                    {{ 'common.view' | t }}
+                    <app-icon name="chevron-right" [size]="13"></app-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <app-empty-state
+        icon="gavel"
+        [title]="'cases.none' | t"
+        [text]="'cases.noneText' | t"
+      >
+        <button type="button" class="btn btn-secondary btn-sm" (click)="goToAlerts()">{{ 'cases.goToAlerts' | t }}</button>
+      </app-empty-state>
     }
+  </div>
 
-    <mat-paginator
+  @if (!loading() && !failed() && cases().length) {
+    <app-paginator
       [length]="totalElements()"
-      [pageSize]="pageSize()"
       [pageIndex]="pageIndex()"
-      [pageSizeOptions]="[10, 20, 50]"
+      [pageSize]="pageSize()"
+      [noun]="'cases.noun' | t"
       (page)="onPage($event)"
-    ></mat-paginator>
+    ></app-paginator>
   }
-</mat-card>
+</div>

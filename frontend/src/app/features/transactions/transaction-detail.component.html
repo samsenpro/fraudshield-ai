@@ -1,72 +1,155 @@
-<a mat-button routerLink="/transactions"><mat-icon>arrow_back</mat-icon> Back to transactions</a>
+<div class="page page-enter">
+  <a routerLink="/transactions" class="btn btn-ghost back-link">
+    <app-icon name="arrow-left" [size]="14"></app-icon>
+    {{ 'txDetail.back' | t }}
+  </a>
 
-@if (loading()) {
-  <mat-spinner diameter="32"></mat-spinner>
-} @else {
-  @if (transaction(); as t) {
-    <div class="detail-grid">
-      <mat-card class="detail-card">
-        <h2>Transaction</h2>
-        <dl>
-          <dt>Amount</dt>
-          <dd>{{ t.amount | number: '1.2-2' }} {{ t.currency }}</dd>
-          <dt>Merchant</dt>
-          <dd>{{ t.merchant }}</dd>
-          <dt>Location</dt>
-          <dd>{{ t.city ? t.city + ', ' : '' }}{{ t.country }}</dd>
-          <dt>Timestamp</dt>
-          <dd>{{ t.occurredAt | date: 'medium' }}</dd>
-          <dt>Status</dt>
-          <dd><app-status-chip [status]="t.status"></app-status-chip></dd>
+  @if (loading()) {
+    <div class="detail-head">
+      <span class="skeleton" style="width: 220px; height: 30px"></span>
+    </div>
+    <div class="grid grid--1-2">
+      <div class="panel"><span class="skeleton" style="height: 240px"></span></div>
+      <div class="panel"><span class="skeleton" style="height: 240px"></span></div>
+    </div>
+  } @else if (demo()) {
+    @if (demo(); as d) {
+    <!-- sample transaction -->
+    <div class="detail-head">
+      <div>
+        <h2 class="detail-head__title">{{ d.ref }}</h2>
+        <p class="detail-head__sub">{{ d.occurredAt | fsDate }} · {{ d.party }}</p>
+      </div>
+      <app-status-badge [status]="d.status"></app-status-badge>
+    </div>
+
+    <div class="grid grid--1-2">
+      <section class="panel">
+        <h3 class="panel__title panel-title-gap">{{ 'txDetail.transaction' | t }}</h3>
+        <dl class="dl">
+          <dt>{{ 'txDetail.amount' | t }}</dt>
+          <dd class="strong">{{ d.amount | fsMoney: d.currency }}</dd>
+          <dt>{{ 'txDetail.user' | t }}</dt>
+          <dd>{{ d.party }}</dd>
+          <dt>{{ 'txDetail.timestamp' | t }}</dt>
+          <dd>{{ d.occurredAt | fsDate }}</dd>
+          <dt>{{ 'txDetail.status' | t }}</dt>
+          <dd><app-status-badge [status]="d.status"></app-status-badge></dd>
+          <dt>{{ 'txDetail.probability' | t }}</dt>
+          <dd>{{ d.probability }}%</dd>
         </dl>
-      </mat-card>
+      </section>
 
-      <mat-card class="detail-card">
-        <h2>Risk Assessment</h2>
-        @if (risk(); as r) {
-          <dl>
-            <dt>Risk Score</dt>
-            <dd>{{ r.riskScore | number: '1.2-2' }}</dd>
-            <dt>Risk Level</dt>
-            <dd><app-status-chip [status]="r.riskLevel"></app-status-chip></dd>
-            <dt>Decision</dt>
-            <dd><app-status-chip [status]="r.decision"></app-status-chip></dd>
-            <dt>Confidence</dt>
-            <dd>{{ r.confidence | number: '1.2-2' }}</dd>
-          </dl>
+      <section class="panel">
+        <div class="panel__head">
+          <h3 class="panel__title">{{ 'txDetail.riskAssessment' | t }}</h3>
+          <span class="tag tag-neutral">{{ 'common.sampleData' | t }}</span>
+        </div>
+        <div class="risk-layout">
+          <app-gauge [score]="demoScore(d)"></app-gauge>
+          <div class="risk-layout__signals">
+            <div class="section-label">{{ 'txDetail.signals' | t }}</div>
+            <app-bar-list [items]="signalBars()"></app-bar-list>
+          </div>
+        </div>
+      </section>
+    </div>
+    }
+  } @else if (transaction()) {
+    @if (transaction(); as t) {
+    <div class="detail-head">
+      <div>
+        <h2 class="detail-head__title">{{ ref() }}</h2>
+        <p class="detail-head__sub">{{ t.occurredAt | fsDate }} · {{ t.merchant }}</p>
+      </div>
+      <app-status-badge [status]="t.status"></app-status-badge>
+    </div>
 
-          <h3>Signals</h3>
-          @if (r.signals.length > 0) {
-            <ul class="signals">
-              @for (signal of r.signals; track signal.code) {
-                <li>
-                  <app-status-chip [status]="signal.severity"></app-status-chip>
-                  {{ signal.code }}
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="muted">No signals were triggered.</p>
+    <div class="grid grid--1-2">
+      <section class="panel">
+        <h3 class="panel__title panel-title-gap">{{ 'txDetail.transaction' | t }}</h3>
+        <dl class="dl">
+          <dt>{{ 'txDetail.amount' | t }}</dt>
+          <dd class="strong">{{ t.amount | fsMoney: t.currency }}</dd>
+          <dt>{{ 'txDetail.merchant' | t }}</dt>
+          <dd>{{ t.merchant }}</dd>
+          <dt>{{ 'txDetail.location' | t }}</dt>
+          <dd>{{ t.city ? t.city + ', ' : '' }}{{ t.country }}</dd>
+          <dt>{{ 'txDetail.timestamp' | t }}</dt>
+          <dd>{{ t.occurredAt | fsDate: 'medium' }}</dd>
+          <dt>{{ 'txDetail.status' | t }}</dt>
+          <dd><app-status-badge [status]="t.status"></app-status-badge></dd>
+          <dt>{{ 'txDetail.account' | t }}</dt>
+          <dd class="mono">{{ t.accountId }}</dd>
+          <dt>{{ 'txDetail.transactionId' | t }}</dt>
+          <dd class="mono">{{ t.id }}</dd>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <h3 class="panel__title">{{ 'txDetail.riskAssessment' | t }}</h3>
+          @if (risk(); as r) {
+            <span class="panel__meta">{{ r.processingTimeMs }} ms · {{ r.modelVersion ?? ('txDetail.rulesOnly' | t) }}</span>
           }
+        </div>
 
-          <h3>Model</h3>
-          <dl>
-            <dt>Model Version</dt>
-            <dd>{{ r.modelVersion ?? 'n/a' }}</dd>
-            <dt>Analysis Time</dt>
+        @if (risk(); as r) {
+          <div class="risk-layout">
+            <app-gauge [score]="riskScore()" [level]="r.riskLevel"></app-gauge>
+            <div class="risk-layout__signals">
+              <div class="risk-facts">
+                <div>
+                  <div class="risk-facts__label">{{ 'txDetail.riskLevel' | t }}</div>
+                  <app-status-badge [status]="r.riskLevel"></app-status-badge>
+                </div>
+                <div>
+                  <div class="risk-facts__label">{{ 'txDetail.decision' | t }}</div>
+                  <app-status-badge [status]="r.decision"></app-status-badge>
+                </div>
+                <div>
+                  <div class="risk-facts__label">{{ 'txDetail.confidence' | t }}</div>
+                  <div class="risk-facts__value">{{ confidence() }}%</div>
+                </div>
+              </div>
+              <div class="section-label">{{ 'txDetail.signals' | t }}</div>
+              @if (signalBars().length) {
+                <app-bar-list [items]="signalBars()"></app-bar-list>
+              } @else {
+                <p class="muted small">{{ 'txDetail.noSignals' | t }}</p>
+              }
+            </div>
+          </div>
+          <dl class="dl model-dl">
+            <dt>{{ 'txDetail.modelVersion' | t }}</dt>
+            <dd class="mono">{{ r.modelVersion ?? 'n/a' }}</dd>
+            <dt>{{ 'txDetail.analysisTime' | t }}</dt>
             <dd>{{ r.processingTimeMs }} ms</dd>
           </dl>
         } @else if (riskPending()) {
-          <div class="pending">
-            <mat-spinner diameter="24"></mat-spinner>
-            <span>Analysis in progress…</span>
+          <div class="scanning" role="status">
+            <div class="scanning__icon">
+              <app-icon name="cpu" [size]="22" color="var(--color-accent-2-800)"></app-icon>
+              <span class="scanning__beam"></span>
+            </div>
+            <div>
+              <div class="scanning__title">{{ 'txDetail.analyzing' | t }}</div>
+              <div class="muted small">{{ 'txDetail.pipeline' | t }}</div>
+            </div>
           </div>
         } @else {
-          <p class="muted">No risk assessment available for this transaction.</p>
+          <app-empty-state icon="shield" [title]="'txDetail.noRisk' | t" [text]="'txDetail.noRiskText' | t"></app-empty-state>
         }
-      </mat-card>
+      </section>
     </div>
+    }
+  } @else if (failed()) {
+    <div class="panel"><app-error-state (retry)="load()"></app-error-state></div>
   } @else {
-    <p>Transaction not found.</p>
+    <div class="panel">
+      <app-empty-state icon="search" [title]="'txDetail.notFound' | t" [text]="'txDetail.notFoundText' | t">
+        <a routerLink="/transactions" class="btn btn-secondary btn-sm">{{ 'txDetail.back' | t }}</a>
+      </app-empty-state>
+    </div>
   }
-}
+</div>

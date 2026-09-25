@@ -1,41 +1,34 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTabsModule } from '@angular/material/tabs';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { TranslatePipe } from '../../core/i18n/i18n.pipes';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { IconComponent } from '../../shared/icon/icon.component';
+import { LanguageSwitchComponent } from '../../shared/language-switch/language-switch.component';
+
+type Mode = 'login' | 'register';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatTabsModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-  ],
+  imports: [ReactiveFormsModule, IconComponent, LanguageSwitchComponent, TranslatePipe],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   // Declared before the forms below: TypeScript emits field initializers in
   // declaration order, and constructor parameter properties are assigned
   // *after* them — so `this.fb` in a field initializer would otherwise be
   // read before it's set. inject() sidesteps that ordering issue entirely.
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
 
+  readonly mode = signal<Mode>('login');
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly showPassword = signal(false);
 
   readonly loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -54,8 +47,19 @@ export class LoginComponent {
     private readonly router: Router,
   ) {}
 
+  ngOnInit(): void {
+    document.title = `${this.i18n.t('titles.login')} · FraudShield AI`;
+  }
+
+  setMode(mode: Mode): void {
+    this.mode.set(mode);
+    this.errorMessage.set(null);
+    this.showPassword.set(false);
+  }
+
   submitLogin(): void {
     if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
       return;
     }
     this.errorMessage.set(null);
@@ -64,15 +68,18 @@ export class LoginComponent {
     const { email, password } = this.loginForm.getRawValue();
     this.auth.login({ email: email!, password: password! }).subscribe({
       next: () => this.router.navigate(['/dashboard']),
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set('Invalid email or password.');
+        this.errorMessage.set(
+          this.i18n.t(err?.status === 0 ? 'login.unreachable' : 'login.invalid'),
+        );
       },
     });
   }
 
   submitRegister(): void {
     if (this.registerForm.invalid) {
+      this.registerForm.markAllAsTouched();
       return;
     }
     this.errorMessage.set(null);
@@ -85,9 +92,14 @@ export class LoginComponent {
         next: () => this.router.navigate(['/dashboard']),
         error: (err) => {
           this.loading.set(false);
-          const message = err?.error?.message ?? 'Could not create the organization. Please try again.';
+          const message = err?.error?.message ?? this.i18n.t('login.registerError');
           this.errorMessage.set(message);
         },
       });
+  }
+
+  invalid(form: 'login' | 'register', name: string): boolean {
+    const control = form === 'login' ? this.loginForm.get(name) : this.registerForm.get(name);
+    return !!control && control.invalid && control.touched;
   }
 }

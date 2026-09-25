@@ -1,0 +1,17 @@
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.generating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-accent-2-800);
+}
+
+.generating .spinner {
+  width: 12px;
+  height: 12px;
+}
