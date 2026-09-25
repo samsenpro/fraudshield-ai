@@ -1,0 +1,198 @@
+<div
+  class="app"
+  [class.app--collapsed]="collapsed()"
+  [class.app--mobile]="isMobile()"
+  [class.app--drawer-open]="isMobile() && mobileOpen()"
+>
+  <!-- backdrop for the mobile drawer -->
+  @if (isMobile() && mobileOpen()) {
+    <div class="app__backdrop" (click)="closeMobileNav()" aria-hidden="true"></div>
+  }
+
+  <!-- SIDEBAR -->
+  <aside
+    class="sidebar"
+    id="fs-sidebar"
+    [attr.aria-label]="'nav.primary' | t"
+    [attr.inert]="isMobile() && !mobileOpen() ? '' : null"
+  >
+    <div class="sidebar__brand">
+      <app-icon name="logo" [size]="22" color="var(--color-accent-2)"></app-icon>
+      @if (showLabels()) {
+        <div class="sidebar__brand-text">
+          <div class="sidebar__brand-name">FraudShield AI</div>
+          <div class="sidebar__brand-tier">{{ 'app.tier' | t }}</div>
+        </div>
+      }
+      @if (isMobile()) {
+        <button type="button" class="icon-btn sidebar__close" (click)="closeMobileNav()" [attr.aria-label]="'shell.closeNav' | t">
+          <app-icon name="x" [size]="16"></app-icon>
+        </button>
+      }
+    </div>
+
+    <nav class="sidebar__nav">
+      @for (item of navItems; track item.path) {
+        <a
+          class="nav-item"
+          [class.is-active]="isActive(item)"
+          [routerLink]="item.path"
+          [attr.aria-current]="isActive(item) ? 'page' : null"
+          [attr.title]="item.label | t"
+        >
+          <app-icon [name]="item.icon" [size]="18"></app-icon>
+          @if (showLabels()) {
+            <span class="nav-item__label">{{ item.label | t }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar__foot">
+      @if (showLabels()) {
+        <div class="engine-card">
+          <span class="pulse-dot"></span>
+          <div>
+            <div class="engine-card__title">{{ 'shell.aiEngine' | t }}</div>
+            <div class="engine-card__meta">{{ 'shell.engineStatus' | t }}</div>
+          </div>
+        </div>
+      } @else {
+        <div class="engine-dot" [attr.title]="'shell.engineTitle' | t"><span class="pulse-dot"></span></div>
+      }
+      @if (isMobile()) {
+        <div class="drawer-lang">
+          <span>{{ 'shell.language' | t }}</span>
+          <app-language-switch></app-language-switch>
+        </div>
+      }
+      @if (!isMobile()) {
+        <button
+          type="button"
+          class="collapse-btn"
+          (click)="toggleCollapse()"
+          [attr.aria-expanded]="!collapsed()"
+          aria-controls="fs-sidebar"
+          [attr.aria-label]="(collapsed() ? 'shell.expandSidebar' : 'shell.collapseSidebar') | t"
+        >
+          <app-icon name="chevron-left" [size]="15" class="collapse-btn__icon"></app-icon>
+          @if (showLabels()) {
+            <span>{{ 'shell.collapse' | t }}</span>
+          }
+        </button>
+      }
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="app__main">
+    <header class="topbar">
+      @if (isMobile()) {
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="openMobileNav()"
+          [attr.aria-label]="'shell.openNav' | t"
+          aria-controls="fs-sidebar"
+          [attr.aria-expanded]="mobileOpen()"
+        >
+          <app-icon name="menu" [size]="18"></app-icon>
+        </button>
+      }
+
+      <div class="topbar__title">
+        <div class="topbar__eyebrow">{{ 'app.name' | t }}</div>
+        <h1 class="topbar__heading">{{ pageTitle() }}</h1>
+      </div>
+
+      <div class="topbar__spacer"></div>
+
+      <app-language-switch class="topbar__lang"></app-language-switch>
+
+      <div class="live-pill topbar__live" [attr.title]="'shell.monitoringTitle' | t">
+        <span class="live-pill__dot"></span>
+        <span class="live-pill__label">{{ 'shell.monitoring' | t }}</span>
+      </div>
+
+      <!-- notifications -->
+      <div class="topbar__menu" data-popover-root>
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="toggleNotifications()"
+          [attr.aria-expanded]="notificationsOpen()"
+          aria-haspopup="true"
+          [attr.aria-label]="'shell.notifications' | t"
+        >
+          <app-icon name="bell" [size]="17"></app-icon>
+          @if (hasUnread()) {
+            <span class="topbar__unread"></span>
+          }
+        </button>
+        @if (notificationsOpen()) {
+          <div class="popover notif" role="menu">
+            <div class="popover__head">
+              <span>{{ 'shell.latestAlerts' | t }}</span>
+              <a routerLink="/alerts" class="panel__link">{{ 'shell.viewAll' | t }}</a>
+            </div>
+            @if (notifications(); as items) {
+              @for (item of items; track item.id) {
+                <button type="button" class="popover__item notif__item" role="menuitem" (click)="openAlert(item)">
+                  <app-icon name="alert" [size]="15" [color]="severityColor[item.severity]"></app-icon>
+                  <span class="notif__body">
+                    <span class="notif__row">
+                      <span class="severity" [style.color]="severityColor[item.severity]">{{ item.severity | lit }}</span>
+                      <span class="notif__time">{{ item.createdAt | fsDate: 'ago' }}</span>
+                    </span>
+                    <span class="notif__title">{{ item.title | lit }}</span>
+                    <span class="notif__meta">{{ item.txRef }}</span>
+                  </span>
+                </button>
+              } @empty {
+                <div class="notif__empty">{{ 'shell.noAlerts' | t }}</div>
+              }
+            } @else {
+              <div class="notif__loading"><span class="spinner"></span> {{ 'shell.loadingAlerts' | t }}</div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- user -->
+      <div class="topbar__menu" data-popover-root>
+        <button
+          type="button"
+          class="avatar"
+          (click)="toggleUserMenu()"
+          [attr.aria-expanded]="userMenuOpen()"
+          aria-haspopup="true"
+          [attr.aria-label]="'shell.accountMenu' | t"
+        >
+          {{ initials() }}
+        </button>
+        @if (userMenuOpen()) {
+          <div class="popover account" role="menu">
+            @if (auth.currentUser(); as user) {
+              <div class="account__who">
+                <div class="account__email">{{ user.email }}</div>
+                <span class="tag tag-accent-2">{{ user.role | lit }}</span>
+              </div>
+            }
+            <a routerLink="/settings" class="popover__item" role="menuitem">
+              <app-icon name="settings" [size]="15"></app-icon> {{ 'shell.settings' | t }}
+            </a>
+            <div class="popover__foot">
+              <button type="button" class="popover__item account__logout" role="menuitem" (click)="logout()">
+                <app-icon name="logout" [size]="15"></app-icon> {{ 'shell.logout' | t }}
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </header>
+
+    <main class="app__content" id="fs-main">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

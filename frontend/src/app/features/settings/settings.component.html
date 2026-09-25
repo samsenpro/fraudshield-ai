@@ -1,0 +1,194 @@
+<div class="page page-enter">
+  <app-page-header [title]="'settings.title' | t" [subtitle]="'settings.subtitle' | t"></app-page-header>
+
+  <div class="tabs" role="tablist" [attr.aria-label]="'settings.sections' | t">
+    @for (t of tabs; track t.key; let i = $index) {
+      <button
+        type="button"
+        role="tab"
+        class="tabs__tab"
+        [class.is-active]="tab() === t.key"
+        [attr.aria-selected]="tab() === t.key"
+        [attr.tabindex]="tab() === t.key ? 0 : -1"
+        [id]="'settings-tab-' + t.key"
+        [attr.aria-controls]="'settings-panel-' + t.key"
+        (click)="selectTab(t.key)"
+        (keydown)="onTabKeydown($event, i)"
+      >
+        {{ t.label | t }}
+      </button>
+    }
+  </div>
+
+  @switch (tab()) {
+    @case ('org') {
+      <div class="tab-panel" role="tabpanel" id="settings-panel-org" aria-labelledby="settings-tab-org">
+        <section class="panel panel--roomy form-grid">
+          <div class="field">
+            <label for="org-name">{{ 'settings.orgName' | t }}</label>
+            <input id="org-name" class="input" value="Meridian Financial Group" readonly />
+          </div>
+          <div class="field">
+            <label for="org-industry">{{ 'settings.industry' | t }}</label>
+            <input id="org-industry" class="input" [value]="'Banking & Fintech' | lit" readonly />
+          </div>
+          <div class="field">
+            <label for="org-plan">{{ 'settings.plan' | t }}</label>
+            <input id="org-plan" class="input" value="Enterprise" readonly />
+          </div>
+          <div class="field">
+            <label for="org-region">{{ 'settings.region' | t }}</label>
+            <input id="org-region" class="input" [value]="'US-East (Primary)' | lit" readonly />
+          </div>
+        </section>
+
+        @if (auth.currentUser(); as user) {
+          <section class="panel panel--roomy">
+            <div class="panel__head">
+              <h3 class="panel__title">{{ 'settings.session' | t }}</h3>
+              <span class="tag tag-accent-2">{{ user.role | lit }}</span>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="me-email">{{ 'settings.signedInAs' | t }}</label>
+                <input id="me-email" class="input" [value]="user.email" readonly />
+              </div>
+              <div class="field">
+                <label for="me-org">{{ 'settings.orgId' | t }}</label>
+                <input id="me-org" class="input mono" [value]="user.organizationId" readonly />
+              </div>
+            </div>
+            <div class="session-foot">
+              <p class="muted session-note">{{ 'settings.sessionNote' | t }}</p>
+              <button type="button" class="btn btn-danger" (click)="logout()">
+                <app-icon name="logout" [size]="14"></app-icon>
+                {{ 'shell.logout' | t }}
+              </button>
+            </div>
+          </section>
+        }
+      </div>
+    }
+
+    @case ('team') {
+      <div class="tab-panel" role="tabpanel" id="settings-panel-team" aria-labelledby="settings-tab-team">
+        <section class="panel panel--flush">
+          <div class="table-wrap">
+            <table class="table table--padded" style="min-width: 600px">
+              <thead>
+                <tr>
+                  <th>{{ 'settings.colName' | t }}</th>
+                  <th>{{ 'settings.colEmail' | t }}</th>
+                  <th>{{ 'settings.colRole' | t }}</th>
+                  <th>{{ 'settings.colStatus' | t }}</th>
+                  <th>{{ 'settings.colLastActive' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of team; track m.email) {
+                  <tr>
+                    <td class="cell-strong">{{ m.name }}</td>
+                    <td class="cell-sub">{{ m.email }}</td>
+                    <td class="role">{{ m.role | lit }}</td>
+                    <td>
+                      <span class="tag" [class.tag-accent-2]="m.status === 'Active'" [class.tag-warning]="m.status !== 'Active'">{{ m.status | lit }}</span>
+                    </td>
+                    <td class="cell-sub nowrap">{{ m.lastActive | lit }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    }
+
+    @case ('security') {
+      <div class="tab-panel" role="tabpanel" id="settings-panel-security" aria-labelledby="settings-tab-security">
+        <section class="panel panel--roomy stack stack--narrow">
+          <div class="setting-row">
+            <div>
+              <div class="setting-row__title">{{ 'settings.language' | t }}</div>
+              <div class="setting-row__desc">{{ 'settings.languageDesc' | t }}</div>
+            </div>
+            <app-language-switch></app-language-switch>
+          </div>
+          <div class="rule"></div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-row__title" id="set-2fa">{{ 'settings.twoFactor' | t }}</div>
+              <div class="setting-row__desc">{{ 'settings.twoFactorDesc' | t }}</div>
+            </div>
+            <button
+              type="button"
+              class="switch"
+              role="switch"
+              [attr.aria-checked]="twoFactor()"
+              aria-labelledby="set-2fa"
+              (click)="toggleTwoFactor()"
+            ></button>
+          </div>
+          <div class="rule"></div>
+          <div class="setting-row">
+            <div>
+              <label class="setting-row__title" for="set-timeout">{{ 'settings.timeout' | t }}</label>
+              <div class="setting-row__desc">{{ 'settings.timeoutDesc' | t }}</div>
+            </div>
+            <select id="set-timeout" class="input timeout-select" [value]="sessionTimeout()" (change)="setTimeoutMinutes($event)">
+              @for (m of timeouts; track m) {
+                <option [value]="m" [selected]="m === sessionTimeout()">{{ 'settings.minutes' | t: { n: m } }}</option>
+              }
+            </select>
+          </div>
+          <div class="rule"></div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-row__title" id="set-ip">{{ 'settings.ipAllowlist' | t }}</div>
+              <div class="setting-row__desc">{{ 'settings.ipAllowlistDesc' | t }}</div>
+            </div>
+            <button
+              type="button"
+              class="switch"
+              role="switch"
+              [attr.aria-checked]="ipAllowlist()"
+              aria-labelledby="set-ip"
+              (click)="toggleIpAllowlist()"
+            ></button>
+          </div>
+        </section>
+      </div>
+    }
+
+    @case ('api') {
+      <div class="tab-panel" role="tabpanel" id="settings-panel-api" aria-labelledby="settings-tab-api">
+        <section class="panel panel--roomy stack stack--wide">
+          @for (k of apiKeys(); track k.name; let last = $last) {
+            <div class="setting-row setting-row--wrap">
+              <div>
+                <div class="setting-row__title">{{ k.name | lit }}</div>
+                <div class="setting-row__desc mono">{{ k.masked }}</div>
+              </div>
+              <button type="button" class="btn btn-secondary" (click)="confirmRegenerate(k)">
+                <app-icon name="refresh" [size]="14"></app-icon>
+                {{ 'settings.regenerate' | t }}
+              </button>
+            </div>
+            @if (!last) {
+              <div class="rule"></div>
+            }
+          }
+        </section>
+      </div>
+    }
+  }
+</div>
+
+@if (regenerating(); as key) {
+  <app-dialog [title]="'settings.regenerateTitle' | t" (closed)="regenerating.set(null)">
+    <p class="dialog-copy">{{ 'settings.regenerateText' | t: { name: (key.name | lit), key: key.masked } }}</p>
+    <div dialog-actions>
+      <button type="button" class="btn btn-secondary" (click)="regenerating.set(null)">{{ 'common.cancel' | t }}</button>
+      <button type="button" class="btn btn-primary" (click)="regenerate()">{{ 'settings.regenerateConfirm' | t }}</button>
+    </div>
+  </app-dialog>
+}

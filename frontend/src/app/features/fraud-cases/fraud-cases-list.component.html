@@ -1,0 +1,75 @@
+<div class="page page-enter">
+  <app-fraud-overview></app-fraud-overview>
+
+  <div class="panel panel--flush">
+    @if (loading()) {
+      <app-skeleton-rows [rows]="5" [cols]="6"></app-skeleton-rows>
+    } @else if (failed()) {
+      <app-error-state [title]="'cases.loadError' | t" (retry)="load()"></app-error-state>
+    } @else if (cases().length) {
+      <div class="table-wrap">
+        <table class="table table--padded" style="min-width: 760px">
+          <thead>
+            <tr>
+              <th>{{ 'cases.colCase' | t }}</th>
+              <th>{{ 'cases.colTransaction' | t }}</th>
+              <th>{{ 'cases.colStatus' | t }}</th>
+              <th>{{ 'cases.colDecision' | t }}</th>
+              <th>{{ 'cases.colReviewer' | t }}</th>
+              <th>{{ 'cases.colOpened' | t }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of cases(); track c.id) {
+              <tr class="is-clickable" tabindex="0" (click)="openDetail(c)" (keydown.enter)="openDetail(c)">
+                <td class="mono">{{ shortRef('CASE', c.id) }}</td>
+                <td class="mono cell-sub">{{ shortRef('TX', c.transactionId) }}</td>
+                <td><app-status-badge [status]="c.status"></app-status-badge></td>
+                <td>
+                  @if (c.decision) {
+                    <app-status-badge [status]="c.decision"></app-status-badge>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td>
+                  @if (c.assignedReviewerName) {
+                    {{ c.assignedReviewerName }}
+                  } @else {
+                    <span class="muted">{{ 'common.unassigned' | t }}</span>
+                  }
+                </td>
+                <td class="cell-sub nowrap">{{ c.createdAt | fsDate }}</td>
+                <td class="cell-end">
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="$event.stopPropagation(); openDetail(c)">
+                    {{ 'common.view' | t }}
+                    <app-icon name="chevron-right" [size]="13"></app-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <app-empty-state
+        icon="gavel"
+        [title]="'cases.none' | t"
+        [text]="'cases.noneText' | t"
+      >
+        <button type="button" class="btn btn-secondary btn-sm" (click)="goToAlerts()">{{ 'cases.goToAlerts' | t }}</button>
+      </app-empty-state>
+    }
+  </div>
+
+  @if (!loading() && !failed() && cases().length) {
+    <app-paginator
+      [length]="totalElements()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [noun]="'cases.noun' | t"
+      (page)="onPage($event)"
+    ></app-paginator>
+  }
+</div>

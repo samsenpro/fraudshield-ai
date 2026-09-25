@@ -1,0 +1,65 @@
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fs-fade-up 0.25s var(--ease-out) backwards;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stack--narrow {
+  max-width: 560px;
+}
+
+.stack--wide {
+  max-width: 640px;
+  gap: 14px;
+}
+
+.setting-row--wrap {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.timeout-select {
+  width: auto;
+  min-width: 150px;
+  font-size: 12.5px;
+}
+
+.role {
+  font-size: 12.5px;
+}
+
+.session-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.session-note {
+  font-size: 12.5px;
+  margin: 0;
+  max-width: 520px;
+}
+
+.dialog-copy {
+  margin: 0;
+  color: var(--color-neutral-800);
+  line-height: 1.55;
+}
+
+@media (max-width: 600px) {
+  .setting-row {
+    align-items: flex-start;
+  }
+}

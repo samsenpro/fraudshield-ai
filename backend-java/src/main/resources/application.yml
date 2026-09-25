@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: fraudshield-api
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:fraudshield}
+    username: ${POSTGRES_USER:fraudshield}
+    password: ${POSTGRES_PASSWORD:fraudshield}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  pattern:
+    console: "%d{ISO8601} %-5level [%X{correlationId:--}] %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+fraudshield:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-every-environment-min-32-chars}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  fraud-engine:
+    base-url: ${FRAUD_ENGINE_URL:http://localhost:8000}
+    api-key: ${FRAUD_ENGINE_API_KEY:change-me}
+    timeout-ms: ${FRAUD_ENGINE_TIMEOUT_MS:3000}
+  risk:
+    thresholds:
+      low: 0.29
+      medium: 0.59
+      high: 0.84
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      fraudEngine:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 3
+  retry:
+    instances:
+      fraudEngine:
+        max-attempts: 3
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+  timelimiter:
+    instances:
+      fraudEngine:
+        timeout-duration: 3s

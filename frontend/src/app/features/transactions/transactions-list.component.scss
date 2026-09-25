@@ -1,0 +1,49 @@
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbar .search .input {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.prob {
+  font-size: 12.5px;
+}
+
+.table-foot__pager {
+  display: flex;
+  gap: 6px;
+}
+
+.pager-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--color-divider);
+  background: transparent;
+  color: var(--color-neutral-700);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.pager-btn--next {
+  color: var(--color-text);
+}
+
+.pager-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .toolbar .search {
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .toolbar .btn {
+    margin-left: auto;
+  }
+}
