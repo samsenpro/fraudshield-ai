@@ -40,7 +40,7 @@ public class FraudEngineHttpClient implements FraudEngineClient {
     }
 
     private AnalyzeTransactionResponse callAnalyze(AnalyzeTransactionRequest request) {
-        String correlationId = request.transactionId().toString();
+        String correlationId = request.correlationId() != null ? request.correlationId() : request.transactionId().toString();
         log.info("Calling fraud engine /api/v1/analyze correlationId={}", correlationId);
 
         return restClient.post()

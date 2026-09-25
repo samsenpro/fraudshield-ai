@@ -15,6 +15,7 @@ import com.fraudshield.ai.dto.RiskSignalDto;
 import com.fraudshield.alert.AlertService;
 import com.fraudshield.audit.AuditAction;
 import com.fraudshield.audit.AuditService;
+import com.fraudshield.config.FraudMetrics;
 import com.fraudshield.transaction.CustomerHistoryService;
 import com.fraudshield.transaction.Transaction;
 import com.fraudshield.transaction.TransactionRepository;
@@ -41,9 +42,10 @@ class RiskAnalysisSteps {
     private final AlertService alertService;
     private final AuditService auditService;
     private final CustomerHistoryService customerHistoryService;
+    private final FraudMetrics fraudMetrics;
 
     @Transactional
-    public AnalyzeTransactionRequest beginAnalysis(UUID transactionId) {
+    public AnalyzeTransactionRequest beginAnalysis(UUID transactionId, String correlationId) {
         Transaction transaction = transactionRepository.findDetailedById(transactionId).orElse(null);
         if (transaction == null) {
             log.error("Transaction {} not found, cannot analyze", transactionId);
@@ -56,7 +58,7 @@ class RiskAnalysisSteps {
         auditService.record(
                 AuditAction.RISK_ANALYSIS_STARTED, "Transaction", transaction.getId(), transaction.getOrganization());
 
-        return toAnalyzeRequest(transaction);
+        return toAnalyzeRequest(transaction, correlationId);
     }
 
     @Transactional
@@ -70,6 +72,8 @@ class RiskAnalysisSteps {
         if (!response.available()) {
             log.warn("Fraud engine unavailable, leaving transaction {} as FAILED", transactionId);
             transitionTo(transaction, TransactionStatus.FAILED);
+            fraudMetrics.incrementRiskAnalysisFailed();
+            fraudMetrics.incrementTransactionsAnalyzed();
             return;
         }
 
@@ -78,6 +82,7 @@ class RiskAnalysisSteps {
 
         transitionTo(transaction, TransactionStatus.fromDecision(result.decision()));
         alertService.raiseIfNeeded(transaction, result.riskLevel(), describeSignals(response.signals()));
+        fraudMetrics.incrementTransactionsAnalyzed();
 
         auditService.record(
                 AuditAction.RISK_ANALYSIS_COMPLETED, "Transaction", transaction.getId(), transaction.getOrganization());
@@ -127,7 +132,7 @@ class RiskAnalysisSteps {
         return true;
     }
 
-    private AnalyzeTransactionRequest toAnalyzeRequest(Transaction transaction) {
+    private AnalyzeTransactionRequest toAnalyzeRequest(Transaction transaction, String correlationId) {
         Instant occurredAt = transaction.getOccurredAt() == null ? Instant.now() : transaction.getOccurredAt();
 
         return new AnalyzeTransactionRequest(
@@ -142,7 +147,8 @@ class RiskAnalysisSteps {
                 transaction.getIpAddress(),
                 transaction.getDeviceId(),
                 occurredAt,
-                customerHistoryService.snapshot(transaction.getAccount(), occurredAt));
+                customerHistoryService.snapshot(transaction.getAccount(), occurredAt),
+                correlationId);
     }
 
     private String describeSignals(List<RiskSignalDto> signals) {

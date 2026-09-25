@@ -16,5 +16,6 @@ public record AnalyzeTransactionRequest(
         String ipAddress,
         String deviceId,
         Instant timestamp,
-        CustomerHistorySnapshot history) {
+        CustomerHistorySnapshot history,
+        String correlationId) {
 }

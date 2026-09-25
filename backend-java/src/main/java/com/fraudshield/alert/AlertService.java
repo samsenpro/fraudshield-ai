@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.fraudshield.audit.AuditAction;
 import com.fraudshield.audit.AuditService;
+import com.fraudshield.config.FraudMetrics;
 import com.fraudshield.exception.ApiException;
 import com.fraudshield.risk.RiskLevel;
 import com.fraudshield.transaction.Transaction;
@@ -24,6 +25,7 @@ public class AlertService {
 
     private final AlertRepository alertRepository;
     private final AuditService auditService;
+    private final FraudMetrics fraudMetrics;
 
     public void raiseIfNeeded(Transaction transaction, RiskLevel riskLevel, String reason) {
         if (!ALERTABLE_LEVELS.contains(riskLevel)) {
@@ -39,6 +41,7 @@ public class AlertService {
                 .build());
 
         auditService.record(AuditAction.ALERT_CREATED, "Alert", alert.getId(), transaction.getOrganization());
+        fraudMetrics.incrementFraudAlerts();
     }
 
     public Page<Alert> listForOrganization(UUID organizationId, Pageable pageable) {

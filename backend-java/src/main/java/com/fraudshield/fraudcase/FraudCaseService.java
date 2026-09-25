@@ -11,6 +11,7 @@ import com.fraudshield.alert.Alert;
 import com.fraudshield.alert.AlertService;
 import com.fraudshield.audit.AuditAction;
 import com.fraudshield.audit.AuditService;
+import com.fraudshield.config.FraudMetrics;
 import com.fraudshield.exception.ApiException;
 import com.fraudshield.organization.Organization;
 import com.fraudshield.user.UserRepository;
@@ -30,6 +31,7 @@ public class FraudCaseService {
     private final AlertService alertService;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final FraudMetrics fraudMetrics;
 
     public FraudCase createFromAlert(UUID alertId, Organization organization) {
         Alert alert = alertService.getForOrganization(alertId, organization.getId());
@@ -48,6 +50,7 @@ public class FraudCaseService {
                 .build());
 
         auditService.record(AuditAction.CASE_CREATED, "FraudCase", fraudCase.getId(), organization);
+        fraudMetrics.incrementFraudCases();
         return fraudCase;
     }
 

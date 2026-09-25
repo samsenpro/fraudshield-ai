@@ -18,6 +18,7 @@ import com.fraudshield.alert.Alert;
 import com.fraudshield.alert.AlertService;
 import com.fraudshield.alert.AlertStatus;
 import com.fraudshield.audit.AuditService;
+import com.fraudshield.config.FraudMetrics;
 import com.fraudshield.exception.ApiException;
 import com.fraudshield.organization.Organization;
 import com.fraudshield.risk.RiskLevel;
@@ -35,6 +36,8 @@ class FraudCaseServiceTest {
     private UserRepository userRepository;
     @Mock
     private AuditService auditService;
+    @Mock
+    private FraudMetrics fraudMetrics;
 
     private FraudCaseService service;
     private Organization organization;
@@ -42,7 +45,7 @@ class FraudCaseServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new FraudCaseService(fraudCaseRepository, alertService, userRepository, auditService);
+        service = new FraudCaseService(fraudCaseRepository, alertService, userRepository, auditService, fraudMetrics);
 
         organization = Organization.builder().build();
         organization.setId(UUID.randomUUID());

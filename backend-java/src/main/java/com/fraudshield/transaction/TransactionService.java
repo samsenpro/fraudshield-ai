@@ -2,6 +2,7 @@ package com.fraudshield.transaction;
 
 import java.util.UUID;
 
+import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,7 @@ import com.fraudshield.account.Account;
 import com.fraudshield.account.AccountRepository;
 import com.fraudshield.audit.AuditAction;
 import com.fraudshield.audit.AuditService;
+import com.fraudshield.config.CorrelationIdFilter;
 import com.fraudshield.exception.ApiException;
 import com.fraudshield.organization.Organization;
 import com.fraudshield.risk.RiskAssessmentService;
@@ -74,7 +76,11 @@ public class TransactionService {
         }
 
         auditService.record(AuditAction.TRANSACTION_CREATED, "Transaction", transaction.getId(), organization);
-        riskAssessmentService.analyzeAsync(transaction.getId());
+
+        // MDC is thread-local: capture it here, on the request thread, and hand
+        // it to the @Async method explicitly since its worker thread starts empty.
+        String correlationId = MDC.get(CorrelationIdFilter.MDC_KEY);
+        riskAssessmentService.analyzeAsync(transaction.getId(), correlationId);
 
         return transaction;
     }

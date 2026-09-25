@@ -20,6 +20,10 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+logging:
+  pattern:
+    console: "%d{ISO8601} %-5level [%X{correlationId:--}] %logger{36} - %msg%n"
+
 management:
   endpoints:
     web:

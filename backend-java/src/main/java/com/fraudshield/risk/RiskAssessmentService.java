@@ -3,12 +3,14 @@ package com.fraudshield.risk;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.fraudshield.ai.FraudEngineClient;
 import com.fraudshield.ai.dto.AnalyzeTransactionRequest;
 import com.fraudshield.ai.dto.AnalyzeTransactionResponse;
+import com.fraudshield.config.CorrelationIdFilter;
 import com.fraudshield.exception.ApiException;
 import com.fraudshield.risk.dto.RiskAssessmentResponse;
 
@@ -30,15 +32,23 @@ public class RiskAssessmentService {
     private final RiskSignalRepository riskSignalRepository;
 
     @Async("fraudAnalysisExecutor")
-    public void analyzeAsync(UUID transactionId) {
-        AnalyzeTransactionRequest request = steps.beginAnalysis(transactionId);
-        if (request == null) {
-            return;
+    public void analyzeAsync(UUID transactionId, String correlationId) {
+        // The worker thread's MDC starts empty — put the caller's correlation id
+        // back so every log line in this async flow (and the outgoing call to
+        // the fraud engine) can still be traced to the originating request.
+        MDC.put(CorrelationIdFilter.MDC_KEY, correlationId);
+        try {
+            AnalyzeTransactionRequest request = steps.beginAnalysis(transactionId, correlationId);
+            if (request == null) {
+                return;
+            }
+
+            AnalyzeTransactionResponse response = fraudEngineClient.analyze(request).join();
+
+            steps.completeAnalysis(transactionId, response);
+        } finally {
+            MDC.remove(CorrelationIdFilter.MDC_KEY);
         }
-
-        AnalyzeTransactionResponse response = fraudEngineClient.analyze(request).join();
-
-        steps.completeAnalysis(transactionId, response);
     }
 
     public RiskAssessmentResponse getForTransaction(UUID transactionId) {
