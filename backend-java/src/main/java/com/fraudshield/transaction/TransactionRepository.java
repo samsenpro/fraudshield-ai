@@ -1,5 +1,7 @@
 package com.fraudshield.transaction;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,4 +23,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             + "join fetch t.organization "
             + "where t.id = :id")
     Optional<Transaction> findDetailedById(@Param("id") UUID id);
+
+    /** Most recent prior transactions for a customer, across all of their accounts. */
+    List<Transaction> findByAccount_Customer_IdAndOccurredAtLessThanOrderByOccurredAtDesc(
+            UUID customerId, Instant before, Pageable pageable);
 }

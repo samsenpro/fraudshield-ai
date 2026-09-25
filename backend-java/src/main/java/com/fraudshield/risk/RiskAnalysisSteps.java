@@ -15,6 +15,7 @@ import com.fraudshield.ai.dto.RiskSignalDto;
 import com.fraudshield.alert.AlertService;
 import com.fraudshield.audit.AuditAction;
 import com.fraudshield.audit.AuditService;
+import com.fraudshield.transaction.CustomerHistoryService;
 import com.fraudshield.transaction.Transaction;
 import com.fraudshield.transaction.TransactionRepository;
 import com.fraudshield.transaction.TransactionStatus;
@@ -39,6 +40,7 @@ class RiskAnalysisSteps {
     private final DecisionEngine decisionEngine;
     private final AlertService alertService;
     private final AuditService auditService;
+    private final CustomerHistoryService customerHistoryService;
 
     @Transactional
     public AnalyzeTransactionRequest beginAnalysis(UUID transactionId) {
@@ -126,6 +128,8 @@ class RiskAnalysisSteps {
     }
 
     private AnalyzeTransactionRequest toAnalyzeRequest(Transaction transaction) {
+        Instant occurredAt = transaction.getOccurredAt() == null ? Instant.now() : transaction.getOccurredAt();
+
         return new AnalyzeTransactionRequest(
                 transaction.getId(),
                 transaction.getAccount().getId(),
@@ -137,7 +141,8 @@ class RiskAnalysisSteps {
                 transaction.getCity(),
                 transaction.getIpAddress(),
                 transaction.getDeviceId(),
-                transaction.getOccurredAt() == null ? Instant.now() : transaction.getOccurredAt());
+                occurredAt,
+                customerHistoryService.snapshot(transaction.getAccount(), occurredAt));
     }
 
     private String describeSignals(List<RiskSignalDto> signals) {

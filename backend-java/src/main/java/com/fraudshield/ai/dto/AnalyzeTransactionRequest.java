@@ -15,5 +15,6 @@ public record AnalyzeTransactionRequest(
         String city,
         String ipAddress,
         String deviceId,
-        Instant timestamp) {
+        Instant timestamp,
+        CustomerHistorySnapshot history) {
 }
