@@ -1,0 +1,113 @@
+<div class="page-toolbar">
+  <h1 class="page-title">Transactions</h1>
+  <button mat-flat-button color="primary" (click)="toggleForm()">
+    <mat-icon>add</mat-icon>
+    New transaction
+  </button>
+</div>
+
+@if (showForm()) {
+  <mat-card class="form-card">
+    <h2>Create a transaction</h2>
+    <form [formGroup]="form" (ngSubmit)="submit()" class="transaction-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Account ID</mat-label>
+        <input matInput formControlName="accountId" placeholder="uuid" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Amount</mat-label>
+        <input matInput type="number" formControlName="amount" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Currency</mat-label>
+        <input matInput formControlName="currency" maxlength="3" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Merchant</mat-label>
+        <input matInput formControlName="merchant" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Country</mat-label>
+        <input matInput formControlName="country" maxlength="2" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>City</mat-label>
+        <input matInput formControlName="city" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Device ID</mat-label>
+        <input matInput formControlName="deviceId" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>IP address</mat-label>
+        <input matInput formControlName="ipAddress" />
+      </mat-form-field>
+
+      @if (formError()) {
+        <p class="form-error">{{ formError() }}</p>
+      }
+
+      <div class="transaction-form__actions">
+        <button mat-button type="button" (click)="toggleForm()">Cancel</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || submitting()">
+          Submit
+        </button>
+      </div>
+    </form>
+  </mat-card>
+}
+
+<mat-card class="table-card">
+  @if (loading()) {
+    <mat-spinner diameter="32"></mat-spinner>
+  } @else {
+    <table mat-table [dataSource]="transactions()">
+      <ng-container matColumnDef="merchant">
+        <th mat-header-cell *matHeaderCellDef>Merchant</th>
+        <td mat-cell *matCellDef="let t">{{ t.merchant }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let t">{{ t.amount | number: '1.2-2' }} {{ t.currency }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="country">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let t">{{ t.city ? t.city + ', ' : '' }}{{ t.country }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let t"><app-status-chip [status]="t.status"></app-status-chip></td>
+      </ng-container>
+
+      <ng-container matColumnDef="occurredAt">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let t">{{ t.occurredAt | date: 'short' }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columns"></tr>
+      <tr mat-row *matRowDef="let row; columns: columns" class="clickable-row" (click)="openDetail(row)"></tr>
+    </table>
+
+    @if (transactions().length === 0) {
+      <p class="empty-state">No transactions yet.</p>
+    }
+
+    <mat-paginator
+      [length]="totalElements()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageIndex()"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPage($event)"
+    ></mat-paginator>
+  }
+</mat-card>

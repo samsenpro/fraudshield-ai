@@ -1,0 +1,72 @@
+<a mat-button routerLink="/transactions"><mat-icon>arrow_back</mat-icon> Back to transactions</a>
+
+@if (loading()) {
+  <mat-spinner diameter="32"></mat-spinner>
+} @else {
+  @if (transaction(); as t) {
+    <div class="detail-grid">
+      <mat-card class="detail-card">
+        <h2>Transaction</h2>
+        <dl>
+          <dt>Amount</dt>
+          <dd>{{ t.amount | number: '1.2-2' }} {{ t.currency }}</dd>
+          <dt>Merchant</dt>
+          <dd>{{ t.merchant }}</dd>
+          <dt>Location</dt>
+          <dd>{{ t.city ? t.city + ', ' : '' }}{{ t.country }}</dd>
+          <dt>Timestamp</dt>
+          <dd>{{ t.occurredAt | date: 'medium' }}</dd>
+          <dt>Status</dt>
+          <dd><app-status-chip [status]="t.status"></app-status-chip></dd>
+        </dl>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h2>Risk Assessment</h2>
+        @if (risk(); as r) {
+          <dl>
+            <dt>Risk Score</dt>
+            <dd>{{ r.riskScore | number: '1.2-2' }}</dd>
+            <dt>Risk Level</dt>
+            <dd><app-status-chip [status]="r.riskLevel"></app-status-chip></dd>
+            <dt>Decision</dt>
+            <dd><app-status-chip [status]="r.decision"></app-status-chip></dd>
+            <dt>Confidence</dt>
+            <dd>{{ r.confidence | number: '1.2-2' }}</dd>
+          </dl>
+
+          <h3>Signals</h3>
+          @if (r.signals.length > 0) {
+            <ul class="signals">
+              @for (signal of r.signals; track signal.code) {
+                <li>
+                  <app-status-chip [status]="signal.severity"></app-status-chip>
+                  {{ signal.code }}
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">No signals were triggered.</p>
+          }
+
+          <h3>Model</h3>
+          <dl>
+            <dt>Model Version</dt>
+            <dd>{{ r.modelVersion ?? 'n/a' }}</dd>
+            <dt>Analysis Time</dt>
+            <dd>{{ r.processingTimeMs }} ms</dd>
+          </dl>
+        } @else if (riskPending()) {
+          <div class="pending">
+            <mat-spinner diameter="24"></mat-spinner>
+            <span>Analysis in progress…</span>
+          </div>
+        } @else {
+          <p class="muted">No risk assessment available for this transaction.</p>
+        }
+      </mat-card>
+    </div>
+  } @else {
+    <p>Transaction not found.</p>
+  }
+}

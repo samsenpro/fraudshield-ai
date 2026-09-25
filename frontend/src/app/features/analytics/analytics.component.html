@@ -1,0 +1,43 @@
+<h1 class="page-title">Analytics</h1>
+
+@if (loading()) {
+  <mat-spinner diameter="32"></mat-spinner>
+} @else {
+  @if (analytics(); as a) {
+    <div class="tiles">
+      <app-stat-tile label="Analyzed" [value]="a.transactionsAnalyzed"></app-stat-tile>
+      <app-stat-tile label="Approved" [value]="a.approved"></app-stat-tile>
+      <app-stat-tile label="Under review" [value]="a.underReview"></app-stat-tile>
+      <app-stat-tile label="Blocked" [value]="a.blocked"></app-stat-tile>
+      <app-stat-tile label="Fraud alerts" [value]="a.fraudAlerts"></app-stat-tile>
+      <app-stat-tile label="Fraud cases" [value]="a.fraudCases"></app-stat-tile>
+      <app-stat-tile label="False positives" [value]="a.falsePositives"></app-stat-tile>
+      <app-stat-tile label="Avg. risk score" [value]="a.averageRiskScore.toFixed(2)"></app-stat-tile>
+      <app-stat-tile label="Avg. analysis time" [value]="a.averageAnalysisTimeMs.toFixed(0) + ' ms'"></app-stat-tile>
+    </div>
+
+    <div class="charts-grid">
+      <mat-card class="chart-card">
+        <h2>Transactions over time (14 days)</h2>
+        <app-bar-list [items]="transactionsOverTime()"></app-bar-list>
+      </mat-card>
+
+      <mat-card class="chart-card">
+        <h2>Risk distribution</h2>
+        <app-bar-list [items]="riskDistribution()"></app-bar-list>
+      </mat-card>
+
+      <mat-card class="chart-card">
+        <h2>Alerts by severity</h2>
+        <app-bar-list [items]="alertsBySeverity()"></app-bar-list>
+      </mat-card>
+
+      <mat-card class="chart-card">
+        <h2>Fraud cases by status</h2>
+        <app-bar-list [items]="fraudCasesByStatus()"></app-bar-list>
+      </mat-card>
+    </div>
+  } @else {
+    <p>Could not load analytics.</p>
+  }
+}

@@ -1,0 +1,25 @@
+<h1 class="page-title">Settings</h1>
+
+<mat-card class="detail-card">
+  @if (auth.currentUser(); as user) {
+    <dl>
+      <dt>Email</dt>
+      <dd>{{ user.email }}</dd>
+      <dt>Role</dt>
+      <dd>{{ user.role }}</dd>
+      <dt>Organization ID</dt>
+      <dd>{{ user.organizationId }}</dd>
+    </dl>
+  }
+
+  <p class="notice">
+    Risk thresholds and per-organization rule configuration live in the Java backend's own
+    configuration today (not yet exposed as editable settings via the API), so there's nothing
+    here to toggle beyond your own session.
+  </p>
+
+  <button mat-stroked-button color="warn" (click)="logout()">
+    <mat-icon>logout</mat-icon>
+    Log out
+  </button>
+</mat-card>

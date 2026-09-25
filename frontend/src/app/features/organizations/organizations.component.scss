@@ -1,0 +1,42 @@
+.detail-card {
+  padding: 20px;
+  max-width: 640px;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 6px 12px;
+  margin: 0 0 16px;
+}
+
+dt {
+  color: #78909c;
+  font-size: 13px;
+}
+
+dd {
+  margin: 0;
+  font-size: 14px;
+  font-family: monospace;
+}
+
+.notice {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  color: #37474f;
+
+  mat-icon {
+    color: #1565c0;
+    flex-shrink: 0;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}

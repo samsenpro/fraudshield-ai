@@ -1,0 +1,67 @@
+<a mat-button routerLink="/fraud-cases"><mat-icon>arrow_back</mat-icon> Back to fraud cases</a>
+
+@if (loading()) {
+  <mat-spinner diameter="32"></mat-spinner>
+} @else {
+  @if (fraudCase(); as c) {
+  <mat-card class="detail-card">
+    <h2>Case overview</h2>
+    <dl>
+      <dt>Status</dt>
+      <dd><app-status-chip [status]="c.status"></app-status-chip></dd>
+      <dt>Transaction</dt>
+      <dd><a [routerLink]="['/transactions', c.transactionId]">{{ c.transactionId }}</a></dd>
+      <dt>Assigned reviewer</dt>
+      <dd>{{ c.assignedReviewerName ?? 'Unassigned' }}</dd>
+      <dt>Opened</dt>
+      <dd>{{ c.createdAt | date: 'medium' }}</dd>
+      @if (c.resolvedAt) {
+        <dt>Resolved</dt>
+        <dd>{{ c.resolvedAt | date: 'medium' }}</dd>
+      }
+      @if (c.decision) {
+        <dt>Decision</dt>
+        <dd><app-status-chip [status]="c.decision"></app-status-chip></dd>
+      }
+      @if (c.notes) {
+        <dt>Notes</dt>
+        <dd>{{ c.notes }}</dd>
+      }
+    </dl>
+
+    @if (actionError()) {
+      <p class="form-error">{{ actionError() }}</p>
+    }
+
+    @if (c.status === 'OPEN') {
+      <button mat-flat-button color="primary" [disabled]="working()" (click)="takeForReview()">
+        Take for review
+      </button>
+    }
+
+    @if (c.status === 'IN_REVIEW') {
+      <form [formGroup]="resolveForm" (ngSubmit)="resolve()" class="resolve-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Decision</mat-label>
+          <mat-select formControlName="decision">
+            @for (decision of decisions; track decision) {
+              <mat-option [value]="decision">{{ decision }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Notes</mat-label>
+          <textarea matInput formControlName="notes" rows="3"></textarea>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="resolveForm.invalid || working()">
+          Resolve case
+        </button>
+      </form>
+    }
+  </mat-card>
+  } @else {
+    <p>Fraud case not found.</p>
+  }
+}

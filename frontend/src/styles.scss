@@ -1,1 +1,56 @@
 /* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+.page-title {
+  margin: 0 0 20px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #263238;
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.chart-card,
+.table-card,
+.form-card {
+  padding: 20px;
+  margin-bottom: 24px;
+
+  h2 {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #37474f;
+  }
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.page-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+table.mat-mdc-table {
+  width: 100%;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background: #f5f6fa;
+}
