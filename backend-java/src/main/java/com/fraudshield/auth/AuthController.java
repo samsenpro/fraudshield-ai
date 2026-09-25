@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fraudshield.audit.AuditAction;
+import com.fraudshield.audit.AuditService;
 import com.fraudshield.auth.dto.AuthResponse;
 import com.fraudshield.auth.dto.LoginRequest;
 import com.fraudshield.auth.dto.RegisterRequest;
@@ -34,6 +36,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final AuditService auditService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -68,6 +71,8 @@ public class AuthController {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> ApiException.unauthorized("Invalid credentials"));
+
+        auditService.record(AuditAction.USER_LOGIN, "User", user.getId(), user, user.getOrganization(), null);
 
         String token = jwtService.generateToken(new UserPrincipal(user));
         return ResponseEntity.ok(AuthResponse.bearer(token, user.getEmail(), user.getRole().name()));
