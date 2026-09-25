@@ -35,7 +35,7 @@ management:
 
 fraudshield:
   jwt:
-    secret: ${JWT_SECRET:change-me-in-every-environment}
+    secret: ${JWT_SECRET:change-me-in-every-environment-min-32-chars}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
   fraud-engine:
     base-url: ${FRAUD_ENGINE_URL:http://localhost:8000}
@@ -46,3 +46,23 @@ fraudshield:
       low: 0.29
       medium: 0.59
       high: 0.84
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      fraudEngine:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 3
+  retry:
+    instances:
+      fraudEngine:
+        max-attempts: 3
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+  timelimiter:
+    instances:
+      fraudEngine:
+        timeout-duration: 3s
