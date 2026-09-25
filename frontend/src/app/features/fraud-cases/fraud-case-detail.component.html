@@ -1,0 +1,136 @@
+<div class="page page-enter">
+  <a routerLink="/fraud-cases" class="btn btn-ghost back-link">
+    <app-icon name="arrow-left" [size]="14"></app-icon>
+    {{ 'caseDetail.back' | t }}
+  </a>
+
+  @if (loading()) {
+    <span class="skeleton" style="width: 240px; height: 30px"></span>
+    <div class="grid grid--halves">
+      <div class="panel"><span class="skeleton" style="height: 260px"></span></div>
+      <div class="panel"><span class="skeleton" style="height: 260px"></span></div>
+    </div>
+  } @else if (fraudCase()) {
+    @if (fraudCase(); as c) {
+    <div class="detail-head">
+      <div>
+        <h2 class="detail-head__title">{{ shortRef('CASE', c.id) }}</h2>
+        <p class="detail-head__sub">{{ 'caseDetail.opened' | t: { date: (c.createdAt | fsDate) } }} · {{ shortRef('TX', c.transactionId) }}</p>
+      </div>
+      <app-status-badge [status]="c.status"></app-status-badge>
+    </div>
+
+    <!-- workflow -->
+    <ol class="steps" [attr.aria-label]="'caseDetail.workflow' | t">
+      @for (step of steps; track step; let i = $index) {
+        <li class="steps__item" [class.is-done]="i < stepIndex()" [class.is-current]="i === stepIndex()">
+          <span class="steps__marker">
+            @if (i < stepIndex() || (i === stepIndex() && step === 'RESOLVED')) {
+              <app-icon name="check" [size]="12"></app-icon>
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <span class="steps__label">{{ statusLabel(step) | lit }}</span>
+        </li>
+      }
+    </ol>
+
+    <div class="grid grid--halves">
+      <section class="panel">
+        <h3 class="panel__title title-gap">{{ 'caseDetail.overview' | t }}</h3>
+        <dl class="dl">
+          <dt>{{ 'caseDetail.status' | t }}</dt>
+          <dd><app-status-badge [status]="c.status"></app-status-badge></dd>
+          <dt>{{ 'caseDetail.transaction' | t }}</dt>
+          <dd>
+            <a [routerLink]="['/transactions', c.transactionId]" class="mono">{{ shortRef('TX', c.transactionId) }}</a>
+          </dd>
+          <dt>{{ 'caseDetail.reviewer' | t }}</dt>
+          <dd>{{ c.assignedReviewerName ?? ('common.unassigned' | t) }}</dd>
+          <dt>{{ 'caseDetail.openedLabel' | t }}</dt>
+          <dd>{{ c.createdAt | fsDate: 'medium' }}</dd>
+          @if (c.resolvedAt) {
+            <dt>{{ 'caseDetail.resolved' | t }}</dt>
+            <dd>{{ c.resolvedAt | fsDate: 'medium' }}</dd>
+          }
+          @if (c.decision) {
+            <dt>{{ 'caseDetail.decision' | t }}</dt>
+            <dd><app-status-badge [status]="c.decision"></app-status-badge></dd>
+          }
+          @if (c.notes) {
+            <dt>{{ 'caseDetail.notes' | t }}</dt>
+            <dd class="notes">{{ c.notes }}</dd>
+          }
+        </dl>
+      </section>
+
+      <section class="panel">
+        <h3 class="panel__title title-gap">{{ 'caseDetail.investigation' | t }}</h3>
+
+        @if (actionError()) {
+          <div class="notice notice--danger action-error" role="alert">
+            <app-icon name="alert" [size]="16"></app-icon>
+            <div class="notice__body">{{ actionError() }}</div>
+          </div>
+        }
+
+        @if (c.status === 'OPEN') {
+          <p class="muted lead">{{ 'caseDetail.waiting' | t }}</p>
+          <button type="button" class="btn btn-primary" [disabled]="working()" (click)="takeForReview()">
+            @if (working()) {
+              <span class="spinner"></span>
+            }
+            {{ 'caseDetail.take' | t }}
+          </button>
+        }
+
+        @if (c.status === 'IN_REVIEW') {
+          <form [formGroup]="resolveForm" (ngSubmit)="resolve()" class="resolve-form">
+            <fieldset class="decision-group">
+              <legend class="field__label">{{ 'caseDetail.decision' | t }}</legend>
+              @for (decision of decisions; track decision) {
+                <label class="decision" [class.is-checked]="resolveForm.value.decision === decision">
+                  <input type="radio" formControlName="decision" [value]="decision" />
+                  <span class="decision__dot"></span>
+                  <app-status-badge [status]="decision"></app-status-badge>
+                </label>
+              }
+            </fieldset>
+
+            <div class="field">
+              <label for="case-notes">{{ 'caseDetail.notes' | t }}</label>
+              <textarea id="case-notes" class="input" formControlName="notes" rows="4" [placeholder]="'caseDetail.notesPlaceholder' | t"></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" [disabled]="resolveForm.invalid || working()">
+                @if (working()) {
+                  <span class="spinner"></span>
+                }
+                {{ 'caseDetail.resolve' | t }}
+              </button>
+            </div>
+          </form>
+        }
+
+        @if (c.status === 'RESOLVED') {
+          <div class="notice notice--success">
+            <app-icon name="check" [size]="16"></app-icon>
+            <div class="notice__body">
+              <div class="notice__title">{{ 'caseDetail.closed' | t }}</div>
+              {{ 'caseDetail.closedText' | t: { date: (c.resolvedAt | fsDate: 'medium'), decision: (statusLabel(c.decision ?? 'UNDETERMINED') | lit) } }}
+            </div>
+          </div>
+        }
+      </section>
+    </div>
+    }
+  } @else if (failed()) {
+    <div class="panel"><app-error-state [title]="'caseDetail.loadError' | t" (retry)="load()"></app-error-state></div>
+  } @else {
+    <div class="panel">
+      <app-empty-state icon="search" [title]="'caseDetail.notFound' | t" [text]="'caseDetail.notFoundText' | t"></app-empty-state>
+    </div>
+  }
+</div>

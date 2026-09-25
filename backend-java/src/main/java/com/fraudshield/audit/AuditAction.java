@@ -1,0 +1,14 @@
+package com.fraudshield.audit;
+
+public enum AuditAction {
+    USER_LOGIN,
+    TRANSACTION_CREATED,
+    RISK_ANALYSIS_STARTED,
+    RISK_ANALYSIS_COMPLETED,
+    ALERT_CREATED,
+    CASE_CREATED,
+    CASE_ASSIGNED,
+    CASE_RESOLVED,
+    MODEL_UPDATED,
+    RULE_UPDATED
+}

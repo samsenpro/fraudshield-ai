@@ -1,0 +1,99 @@
+<div class="page page-enter">
+  <app-page-header [title]="'reports.title' | t" [subtitle]="'reports.subtitle' | t">
+    <button type="button" class="btn btn-primary" (click)="openDialog()">{{ 'reports.generate' | t }}</button>
+  </app-page-header>
+
+  <div class="grid grid--stats">
+    <app-stat-tile label="reports.generated30" [value]="generatedCount()"></app-stat-tile>
+    <app-stat-tile label="reports.scheduled" value="6" style="animation-delay: 50ms"></app-stat-tile>
+    <app-stat-tile label="reports.avgTime" value="8.4s" style="animation-delay: 100ms"></app-stat-tile>
+  </div>
+
+  <div class="panel panel--flush">
+    <div class="table-wrap">
+      <table class="table table--padded" style="min-width: 760px">
+        <thead>
+          <tr>
+            <th>{{ 'reports.colName' | t }}</th>
+            <th>{{ 'reports.colType' | t }}</th>
+            <th>{{ 'reports.colRange' | t }}</th>
+            <th>{{ 'reports.colGenerated' | t }}</th>
+            <th>{{ 'reports.colFormat' | t }}</th>
+            <th>{{ 'reports.colSize' | t }}</th>
+            <th><span class="sr-only">{{ 'reports.download' | t }}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of reports(); track r.id) {
+            <tr [class.is-new]="r.id === newestId()">
+              <td class="cell-strong">{{ r.name | lit }}</td>
+              <td class="cell-sub">{{ r.type | lit }}</td>
+              <td class="cell-sub nowrap">{{ r.range | lit }}</td>
+              <td class="cell-sub nowrap">{{ r.generated | fsDate: 'date' }}</td>
+              <td><span class="tag tag-neutral">{{ r.format }}</span></td>
+              <td class="cell-sub">
+                @if (r.status === 'GENERATING') {
+                  <span class="generating"><span class="spinner"></span> {{ 'reports.generating' | t }}</span>
+                } @else {
+                  {{ r.size }}
+                }
+              </td>
+              <td class="cell-end">
+                <button
+                  type="button"
+                  class="row-action"
+                  [disabled]="r.status !== 'READY'"
+                  (click)="download(r)"
+                  [attr.aria-label]="'reports.downloadReport' | t: { name: (r.name | lit) }"
+                  [attr.title]="'reports.downloadReport' | t: { name: (r.name | lit) }"
+                >
+                  <app-icon name="download" [size]="15"></app-icon>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+@if (showDialog()) {
+  <app-dialog [title]="'reports.dialogTitle' | t" [subtitle]="'reports.dialogSubtitle' | t" (closed)="closeDialog()">
+    <form id="report-form" [formGroup]="form" (ngSubmit)="generate()" class="report-form" novalidate>
+      <div class="field">
+        <label for="report-name">{{ 'reports.name' | t }}</label>
+        <input id="report-name" class="input" formControlName="name" [placeholder]="'reports.namePlaceholder' | t" />
+        @if (invalid('name')) {
+          <span class="field__error">{{ 'reports.nameRequired' | t }}</span>
+        }
+      </div>
+      <div class="form-grid form-grid--2">
+        <div class="field">
+          <label for="report-type">{{ 'reports.type' | t }}</label>
+          <select id="report-type" class="input" formControlName="type">
+            @for (t of types; track t) {
+              <option [value]="t">{{ t | lit }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="report-range">{{ 'reports.range' | t }}</label>
+          <select id="report-range" class="input" formControlName="range">
+            @for (r of ranges; track r.value) {
+              <option [value]="r.value">{{ r.label | lit }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <span class="field__label">{{ 'reports.format' | t }}</span>
+        <app-segmented [options]="formats" [value]="form.value.format ?? 'PDF'" (valueChange)="setFormat($event)" [ariaLabel]="'reports.format' | t"></app-segmented>
+      </div>
+    </form>
+    <div dialog-actions>
+      <button type="button" class="btn btn-secondary" (click)="closeDialog()">{{ 'common.cancel' | t }}</button>
+      <button type="submit" form="report-form" class="btn btn-primary">{{ 'reports.submit' | t }}</button>
+    </div>
+  </app-dialog>
+}

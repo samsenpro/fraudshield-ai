@@ -1,0 +1,83 @@
+<div class="page page-enter">
+  <app-page-header [title]="'risk.title' | t" [subtitle]="'risk.subtitle' | t"></app-page-header>
+
+  <div class="grid grid--1-2">
+    <section class="panel gauge-panel">
+      @if (loading()) {
+        <span class="skeleton" style="width: 180px; height: 150px"></span>
+      } @else {
+        <app-gauge [score]="avgScore()"></app-gauge>
+        <div class="gauge-panel__caption">{{ 'risk.avgScore' | t }}{{ live() ? '' : ('risk.sampleSuffix' | t) }}</div>
+      }
+    </section>
+
+    <section class="panel">
+      <h3 class="panel__title panel-gap">{{ 'risk.factors' | t }}</h3>
+      <app-bar-list [items]="riskFactors" style="--bar-gap: 12px"></app-bar-list>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h3 class="panel__title panel-gap">{{ 'risk.region' | t }}</h3>
+    <app-bar-list [items]="regionRisk" layout="inline" style="--bar-gap: 10px"></app-bar-list>
+  </section>
+
+  <!-- live distributions from the analytics API -->
+  <div class="grid grid--halves">
+    <section class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">{{ 'risk.distribution' | t }}</h3>
+        <span class="panel__meta">{{ 'risk.scored' | t }}</span>
+      </div>
+      @if (loading()) {
+        <span class="skeleton" style="height: 120px"></span>
+      } @else if (riskDistribution().length) {
+        <app-bar-list [items]="riskDistribution()"></app-bar-list>
+      } @else {
+        <app-empty-state icon="bars" [title]="'risk.noScored' | t" [text]="'risk.noScoredText' | t"></app-empty-state>
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">{{ 'risk.bySeverity' | t }}</h3>
+        <span class="panel__meta">{{ 'risk.allTime' | t }}</span>
+      </div>
+      @if (loading()) {
+        <span class="skeleton" style="height: 120px"></span>
+      } @else if (alertsBySeverity().length) {
+        <app-bar-list [items]="alertsBySeverity()"></app-bar-list>
+      } @else {
+        <app-empty-state icon="alert" [title]="'risk.noAlerts' | t" [text]="'risk.noAlertsText' | t"></app-empty-state>
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">{{ 'risk.casesByStatus' | t }}</h3>
+        <span class="panel__meta">{{ 'risk.pipeline' | t }}</span>
+      </div>
+      @if (loading()) {
+        <span class="skeleton" style="height: 120px"></span>
+      } @else if (casesByStatus().length) {
+        <app-bar-list [items]="casesByStatus()"></app-bar-list>
+      } @else {
+        <app-empty-state icon="gavel" [title]="'risk.noCases' | t" [text]="'risk.noCasesText' | t"></app-empty-state>
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel__head">
+        <h3 class="panel__title">{{ 'risk.overTime' | t }}</h3>
+        <span class="panel__meta">{{ 'common.lastDays' | t: { n: 14 } }}</span>
+      </div>
+      @if (loading()) {
+        <span class="skeleton" style="height: 150px"></span>
+      } @else if (overTime().length) {
+        <app-bar-chart [data]="overTime()" [ariaLabel]="'risk.perDay' | t"></app-bar-chart>
+      } @else {
+        <app-empty-state icon="activity" [title]="'risk.noActivity' | t" [text]="'risk.noActivityText' | t"></app-empty-state>
+      }
+    </section>
+  </div>
+</div>

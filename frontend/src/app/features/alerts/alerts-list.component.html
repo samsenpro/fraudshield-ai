@@ -1,0 +1,91 @@
+<div class="page page-enter">
+  <app-fraud-overview></app-fraud-overview>
+
+  <div class="list-toolbar">
+    <app-segmented
+      size="sm"
+      [options]="severityFilters()"
+      [value]="severity()"
+      (valueChange)="setSeverity($event)"
+      [ariaLabel]="'alerts.filter' | t"
+    ></app-segmented>
+    @if (sample()) {
+      <span class="tag tag-neutral">{{ (failed() ? 'alerts.sampleApiDown' : 'alerts.sample') | t }}</span>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="alert-list">
+      @for (i of [0, 1, 2, 3]; track i) {
+        <div class="alert-card alert-card--skeleton">
+          <span class="skeleton" style="width: 20px; height: 20px"></span>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+            <span class="skeleton" style="width: 90px; height: 10px"></span>
+            <span class="skeleton" style="width: 50%; height: 14px"></span>
+            <span class="skeleton" style="width: 30%; height: 10px"></span>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="alert-list">
+      @for (a of visible(); track a.id; let i = $index) {
+        <article class="alert-card" [style.border-left-color]="severityColor[a.severity]" [style.animation-delay.ms]="i * 50">
+          <app-icon name="alert" [size]="20" [color]="severityColor[a.severity]"></app-icon>
+          <div class="alert-card__body">
+            <div class="alert-card__row">
+              <span class="severity" [style.color]="severityColor[a.severity]">{{ a.severity | lit }}</span>
+              <span class="alert-card__time">{{ a.createdAt | fsDate: 'ago' }}</span>
+              @if (a.status) {
+                <app-status-badge [status]="a.status" size="sm"></app-status-badge>
+              }
+            </div>
+            <div class="alert-card__title">{{ a.title | lit }}</div>
+            <div class="alert-card__meta">
+              {{ a.txRef }}
+              @if (a.risk !== null) {
+                · {{ 'alerts.riskScore' | t: { n: a.risk } }}
+              }
+            </div>
+          </div>
+          <div class="alert-card__actions">
+            @if (a.status === 'OPEN') {
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="openingCaseFor() === a.id"
+                (click)="openCase(a)"
+              >
+                @if (openingCaseFor() === a.id) {
+                  <span class="spinner"></span>
+                }
+                {{ 'alerts.openCase' | t }}
+              </button>
+            }
+            <button type="button" class="btn btn-secondary" (click)="review(a)" [disabled]="!a.transactionId">
+              {{ 'alerts.review' | t }}
+            </button>
+          </div>
+        </article>
+      } @empty {
+        <div class="panel">
+          <app-empty-state
+            icon="shield-check"
+            [title]="noneTitle()"
+            [text]="'alerts.noneText' | t"
+          ></app-empty-state>
+        </div>
+      }
+    </div>
+
+    @if (!sample()) {
+      <app-paginator
+        [length]="totalElements()"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        [noun]="'alerts.noun' | t"
+        (page)="onPage($event)"
+      ></app-paginator>
+    }
+  }
+</div>
