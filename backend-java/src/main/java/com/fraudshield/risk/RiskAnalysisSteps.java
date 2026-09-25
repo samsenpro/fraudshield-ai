@@ -88,6 +88,15 @@ class RiskAnalysisSteps {
                 AuditAction.RISK_ANALYSIS_COMPLETED, "Transaction", transaction.getId(), transaction.getOrganization());
     }
 
+    @Transactional
+    public void markFailed(UUID transactionId) {
+        transactionRepository.findById(transactionId).ifPresent(transaction -> {
+            if (transitionTo(transaction, TransactionStatus.FAILED)) {
+                fraudMetrics.incrementRiskAnalysisFailed();
+            }
+        });
+    }
+
     private void persistAssessment(Transaction transaction, AnalyzeTransactionResponse response, DecisionEngine.Result result) {
         ModelVersion modelVersion = resolveOrRegisterModelVersion(response.modelVersion());
 
@@ -122,13 +131,10 @@ class RiskAnalysisSteps {
         if (version == null) {
             return null;
         }
-        return modelVersionRepository.findByVersion(version)
-                .orElseGet(() -> modelVersionRepository.save(ModelVersion.builder()
-                        .version(version)
-                        .modelType("unknown")
-                        .datasetVersion("unknown")
-                        .trainedAt(Instant.now())
-                        .build()));
+        return modelVersionRepository.findByVersion(version).orElseGet(() -> {
+            modelVersionRepository.registerIfAbsent(version);
+            return modelVersionRepository.findByVersion(version).orElseThrow();
+        });
     }
 
     private RiskLevel parseSeverity(String severity) {

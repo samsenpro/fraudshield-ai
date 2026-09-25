@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fraudshield.alert.Alert;
 import com.fraudshield.alert.AlertService;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
  * alert (never auto-created), reviewed (assigned), then resolved.
  */
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class FraudCaseService {
 
@@ -73,7 +75,10 @@ public class FraudCaseService {
             throw ApiException.conflict("Only an OPEN case can be assigned for review");
         }
 
-        fraudCase.setAssignedReviewer(userRepository.getReferenceById(reviewerId));
+        // A loaded entity, not getReferenceById: the response maps the reviewer's
+        // name after this transaction closes, which an uninitialized proxy can't do.
+        fraudCase.setAssignedReviewer(userRepository.findById(reviewerId)
+                .orElseThrow(() -> ApiException.notFound("Reviewer not found")));
         fraudCase.setStatus(FraudCaseStatus.IN_REVIEW);
         fraudCaseRepository.save(fraudCase);
 

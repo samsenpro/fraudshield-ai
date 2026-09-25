@@ -3,6 +3,8 @@ package com.fraudshield.risk;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RiskAssessmentService {
 
+    private static final Logger log = LoggerFactory.getLogger(RiskAssessmentService.class);
+
     private final FraudEngineClient fraudEngineClient;
     private final RiskAnalysisSteps steps;
     private final RiskAssessmentRepository riskAssessmentRepository;
@@ -45,7 +49,14 @@ public class RiskAssessmentService {
 
             AnalyzeTransactionResponse response = fraudEngineClient.analyze(request).join();
 
-            steps.completeAnalysis(transactionId, response);
+            try {
+                steps.completeAnalysis(transactionId, response);
+            } catch (RuntimeException e) {
+                // completeAnalysis rolled back, so the transaction would otherwise
+                // sit in ANALYZING forever — record the failure in a fresh tx.
+                log.error("Could not complete risk analysis for transaction {}", transactionId, e);
+                steps.markFailed(transactionId);
+            }
         } finally {
             MDC.remove(CorrelationIdFilter.MDC_KEY);
         }

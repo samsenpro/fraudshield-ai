@@ -21,4 +21,21 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * Runs the HTTP calls to the fraud engine. Must be separate from
+     * {@code fraudAnalysisExecutor}: each analysis thread blocks on its engine
+     * call, so sharing one pool deadlocks once every analysis thread is waiting
+     * on a call queued behind the others (surfacing as TimeLimiter timeouts).
+     */
+    @Bean("fraudEngineCallExecutor")
+    public Executor fraudEngineCallExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(16);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("fraud-engine-call-");
+        executor.initialize();
+        return executor;
+    }
 }

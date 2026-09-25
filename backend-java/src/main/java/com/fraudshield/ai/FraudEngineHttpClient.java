@@ -22,13 +22,13 @@ public class FraudEngineHttpClient implements FraudEngineClient {
     private static final Logger log = LoggerFactory.getLogger(FraudEngineHttpClient.class);
 
     private final RestClient restClient;
-    private final Executor fraudAnalysisExecutor;
+    private final Executor fraudEngineCallExecutor;
 
     public FraudEngineHttpClient(
             RestClient fraudEngineRestClient,
-            @Qualifier("fraudAnalysisExecutor") Executor fraudAnalysisExecutor) {
+            @Qualifier("fraudEngineCallExecutor") Executor fraudEngineCallExecutor) {
         this.restClient = fraudEngineRestClient;
-        this.fraudAnalysisExecutor = fraudAnalysisExecutor;
+        this.fraudEngineCallExecutor = fraudEngineCallExecutor;
     }
 
     @Override
@@ -36,7 +36,7 @@ public class FraudEngineHttpClient implements FraudEngineClient {
     @Retry(name = "fraudEngine")
     @TimeLimiter(name = "fraudEngine")
     public CompletableFuture<AnalyzeTransactionResponse> analyze(AnalyzeTransactionRequest request) {
-        return CompletableFuture.supplyAsync(() -> callAnalyze(request), fraudAnalysisExecutor);
+        return CompletableFuture.supplyAsync(() -> callAnalyze(request), fraudEngineCallExecutor);
     }
 
     private AnalyzeTransactionResponse callAnalyze(AnalyzeTransactionRequest request) {
