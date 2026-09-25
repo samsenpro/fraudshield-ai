@@ -19,6 +19,10 @@ public class RestClientConfig {
     public RestClient fraudEngineRestClient(FraudEngineProperties properties) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(properties.getTimeoutMs()))
+                // Without this, the JDK client tries an h2c (HTTP/2 cleartext) upgrade
+                // on the first request; uvicorn/h11 rejects that as an unsupported
+                // upgrade and fails the whole request ("Invalid HTTP request received").
+                .version(HttpClient.Version.HTTP_1_1)
                 .build();
 
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);

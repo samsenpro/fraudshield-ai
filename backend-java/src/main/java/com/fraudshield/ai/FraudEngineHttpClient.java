@@ -54,6 +54,6 @@ public class FraudEngineHttpClient implements FraudEngineClient {
     @SuppressWarnings("unused")
     private CompletableFuture<AnalyzeTransactionResponse> analyzeFallback(AnalyzeTransactionRequest request, Throwable t) {
         log.warn("Fraud engine unavailable for transaction {}: {}", request.transactionId(), t.toString());
-        return CompletableFuture.completedFuture(AnalyzeTransactionResponse.unavailable());
+        return CompletableFuture.completedFuture(null);
     }
 }

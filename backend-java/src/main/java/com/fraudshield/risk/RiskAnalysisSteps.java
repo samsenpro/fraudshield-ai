@@ -69,7 +69,7 @@ class RiskAnalysisSteps {
             return;
         }
 
-        if (!response.available()) {
+        if (response == null) {
             log.warn("Fraud engine unavailable, leaving transaction {} as FAILED", transactionId);
             transitionTo(transaction, TransactionStatus.FAILED);
             fraudMetrics.incrementRiskAnalysisFailed();
@@ -89,9 +89,7 @@ class RiskAnalysisSteps {
     }
 
     private void persistAssessment(Transaction transaction, AnalyzeTransactionResponse response, DecisionEngine.Result result) {
-        ModelVersion modelVersion = response.modelVersion() == null
-                ? null
-                : modelVersionRepository.findByVersion(response.modelVersion()).orElse(null);
+        ModelVersion modelVersion = resolveOrRegisterModelVersion(response.modelVersion());
 
         RiskAssessment assessment = riskAssessmentRepository.save(RiskAssessment.builder()
                 .transaction(transaction)
@@ -112,6 +110,25 @@ class RiskAnalysisSteps {
                     .score(signal.score())
                     .build()));
         }
+    }
+
+    /**
+     * Java only learns a model version exists the first time an assessment
+     * references it — /analyze doesn't carry modelType/datasetVersion, so a
+     * freshly-registered row is a placeholder until something calls the fraud
+     * engine's GET /model to backfill the real metadata (not implemented yet).
+     */
+    private ModelVersion resolveOrRegisterModelVersion(String version) {
+        if (version == null) {
+            return null;
+        }
+        return modelVersionRepository.findByVersion(version)
+                .orElseGet(() -> modelVersionRepository.save(ModelVersion.builder()
+                        .version(version)
+                        .modelType("unknown")
+                        .datasetVersion("unknown")
+                        .trainedAt(Instant.now())
+                        .build()));
     }
 
     private RiskLevel parseSeverity(String severity) {

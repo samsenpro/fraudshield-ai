@@ -11,5 +11,6 @@ import com.fraudshield.ai.dto.AnalyzeTransactionResponse;
  */
 public interface FraudEngineClient {
 
+    /** Completes with {@code null} if the engine is unavailable (see the circuit breaker fallback). */
     CompletableFuture<AnalyzeTransactionResponse> analyze(AnalyzeTransactionRequest request);
 }
