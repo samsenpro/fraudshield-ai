@@ -1,3 +1,5 @@
+import pandas as pd
+
 from app.core.model_registry import ModelBundle
 
 
@@ -13,7 +15,7 @@ class AnomalyDetector:
         if not self._bundle.is_trained or self._bundle.anomaly_model is None:
             return 0.0
 
-        vector = [[features[name] for name in self._bundle.feature_names]]
+        vector = pd.DataFrame([features], columns=self._bundle.feature_names)
         raw = -self._bundle.anomaly_model.score_samples(vector)[0]
 
         scale = self._bundle.anomaly_scale or {"min": raw, "max": raw + 1.0}

@@ -1,7 +1,9 @@
+import logging
 import time
 
 from app.anomaly.detector import AnomalyDetector
 from app.core.config import Settings
+from app.core.metrics import AI_ANALYSIS_LATENCY
 from app.core.model_registry import ModelBundle
 from app.features.extractor import FeatureExtractor
 from app.ml.classifier import FraudClassifier
@@ -9,6 +11,8 @@ from app.models.schemas import AnalyzeResponse, RiskSignalOut, TransactionInput
 from app.rules.rule_engine import RuleEngine
 from app.services.explainability import build_reasons
 from app.services.risk_engine import RiskEngine
+
+logger = logging.getLogger(__name__)
 
 
 class AnalysisService:
@@ -48,19 +52,24 @@ class AnalysisService:
     def analyze(self, transaction: TransactionInput) -> AnalyzeResponse:
         start = time.perf_counter()
 
-        features = self._feature_extractor.extract(transaction)
-        rule_signals = self._rule_engine.evaluate(features)
-        rule_score = RuleEngine.aggregate_score(rule_signals)
-        ml_score = self._classifier.predict_proba(features)
-        anomaly_score = self._anomaly_detector.score(features)
+        with AI_ANALYSIS_LATENCY.time():
+            features = self._feature_extractor.extract(transaction)
+            rule_signals = self._rule_engine.evaluate(features)
+            rule_score = RuleEngine.aggregate_score(rule_signals)
+            ml_score = self._classifier.predict_proba(features)
+            anomaly_score = self._anomaly_detector.score(features)
 
-        final_score = self._risk_engine.combine(ml_score, anomaly_score, rule_score)
-        risk_level = self._risk_engine.risk_level(final_score)
-        decision = self._risk_engine.decision(risk_level)
-        reasons = build_reasons(rule_signals, ml_score, anomaly_score)
-        confidence = self._confidence(ml_score)
+            final_score = self._risk_engine.combine(ml_score, anomaly_score, rule_score)
+            risk_level = self._risk_engine.risk_level(final_score)
+            decision = self._risk_engine.decision(risk_level)
+            reasons = build_reasons(rule_signals, ml_score, anomaly_score)
+            confidence = self._confidence(ml_score)
 
         processing_time_ms = int((time.perf_counter() - start) * 1000)
+        logger.info(
+            "analyzed transaction_id=%s risk_score=%s risk_level=%s decision=%s processing_time_ms=%s",
+            transaction.transaction_id, round(final_score, 4), risk_level, decision, processing_time_ms,
+        )
 
         return AnalyzeResponse(
             transaction_id=transaction.transaction_id,

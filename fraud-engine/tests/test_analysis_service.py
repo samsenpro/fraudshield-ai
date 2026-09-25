@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pandas as pd
 from sklearn.ensemble import IsolationForest, RandomForestClassifier
 
 from app.core.config import Settings
@@ -40,14 +41,16 @@ def _trained_bundle() -> ModelBundle:
     fraud_row = {name: 1.0 for name in FEATURE_NAMES}
     fraud_row["transaction_amount"] = 5000.0
 
-    X = [[row[name] for name in FEATURE_NAMES] for row in (normal_row, fraud_row)]
+    # A DataFrame with named columns, matching what the classifier/detector build
+    # at inference time — otherwise sklearn warns about the feature-name mismatch.
+    X = pd.DataFrame([normal_row, fraud_row], columns=FEATURE_NAMES)
     y = [0, 1]
 
     # bootstrap=False: with only two training rows, bootstrap resampling would let
     # some trees see the same row twice and never learn the split — deterministic
     # full-data trees make this fixture reliable.
     classifier = RandomForestClassifier(n_estimators=10, random_state=42, bootstrap=False).fit(X, y)
-    anomaly_model = IsolationForest(n_estimators=10, random_state=42).fit([X[0]])
+    anomaly_model = IsolationForest(n_estimators=10, random_state=42).fit(X.iloc[[0]])
     raw_scores = -anomaly_model.score_samples(X)
 
     return ModelBundle(

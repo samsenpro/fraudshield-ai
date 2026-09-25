@@ -42,7 +42,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fraudshield}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-every-environment}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-every-environment-min-32-chars}
       FRAUD_ENGINE_URL: http://fraud-engine:8000
       FRAUD_ENGINE_API_KEY: ${FRAUD_ENGINE_API_KEY:-change-me}
     ports:
@@ -62,20 +62,26 @@ services:
     depends_on:
       - java-api
 
-  # Opcionales — observabilidad (sección 33 del spec):
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   volumes:
-  #     - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-  #   ports:
-  #     - "9090:9090"
-  #
-  # grafana:
-  #   image: grafana/grafana:latest
-  #   volumes:
-  #     - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
-  #   ports:
-  #     - "3000:3000"
+  # Observabilidad (sección 33): Java expone /actuator/prometheus, Python /metrics —
+  # ambos ya scrapeados por infrastructure/prometheus/prometheus.yml.
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - java-api
+      - fraud-engine
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
 
 volumes:
   postgres-data:

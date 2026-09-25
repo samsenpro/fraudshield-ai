@@ -1,3 +1,6 @@
+import pandas as pd
+
+from app.core.metrics import ML_PREDICTION_LATENCY
 from app.core.model_registry import ModelBundle
 
 
@@ -12,5 +15,8 @@ class FraudClassifier:
         if not self._bundle.is_trained or self._bundle.classifier is None:
             return 0.0
 
-        vector = [[features[name] for name in self._bundle.feature_names]]
-        return float(self._bundle.classifier.predict_proba(vector)[0][1])
+        with ML_PREDICTION_LATENCY.time():
+            # A DataFrame with the training-time column names avoids sklearn's
+            # "X does not have valid feature names" warning on every call.
+            vector = pd.DataFrame([features], columns=self._bundle.feature_names)
+            return float(self._bundle.classifier.predict_proba(vector)[0][1])
