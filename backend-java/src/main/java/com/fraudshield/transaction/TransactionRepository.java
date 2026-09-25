@@ -27,4 +27,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     /** Most recent prior transactions for a customer, across all of their accounts. */
     List<Transaction> findByAccount_Customer_IdAndOccurredAtLessThanOrderByOccurredAtDesc(
             UUID customerId, Instant before, Pageable pageable);
+
+    long countByOrganizationIdAndStatusIn(UUID organizationId, List<TransactionStatus> statuses);
+
+    long countByOrganizationIdAndStatus(UUID organizationId, TransactionStatus status);
+
+    long countByOrganizationIdAndOccurredAtBetween(UUID organizationId, Instant start, Instant end);
 }

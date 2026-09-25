@@ -1,5 +1,6 @@
 package com.fraudshield.fraudcase;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,4 +24,12 @@ public interface FraudCaseRepository extends JpaRepository<FraudCase, UUID> {
             value = "select fc from FraudCase fc left join fetch fc.assignedReviewer where fc.organization.id = :organizationId",
             countQuery = "select count(fc) from FraudCase fc where fc.organization.id = :organizationId")
     Page<FraudCase> findByOrganizationId(@Param("organizationId") UUID organizationId, Pageable pageable);
+
+    long countByOrganizationId(UUID organizationId);
+
+    long countByOrganizationIdAndDecision(UUID organizationId, FraudCaseDecision decision);
+
+    @Query("select fc.status as status, count(fc) as total from FraudCase fc "
+            + "where fc.organization.id = :organizationId group by fc.status")
+    List<FraudCaseStatusCount> countByStatus(@Param("organizationId") UUID organizationId);
 }
