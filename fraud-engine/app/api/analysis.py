@@ -1,32 +1,42 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends
 
-from app.core.config import get_settings
+from app.models.schemas import AnalyzeResponse, TransactionInput
+from app.services.analysis_service import AnalysisService
+from app.services.container import get_analysis_service
 
 router = APIRouter(prefix="/api/v1", tags=["fraud-analysis"])
 
-_NOT_IMPLEMENTED = "Not implemented yet — pending fraud engine implementation phase."
 
-
-@router.post("/analyze")
-def analyze(transaction: dict) -> dict:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, _NOT_IMPLEMENTED)
+@router.post("/analyze", response_model=AnalyzeResponse, response_model_by_alias=True)
+def analyze(
+    transaction: TransactionInput, service: AnalysisService = Depends(get_analysis_service)
+) -> AnalyzeResponse:
+    return service.analyze(transaction)
 
 
 @router.post("/features")
-def extract_features(transaction: dict) -> dict:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, _NOT_IMPLEMENTED)
+def extract_features(
+    transaction: TransactionInput, service: AnalysisService = Depends(get_analysis_service)
+) -> dict[str, float]:
+    return service.extract_features(transaction)
 
 
 @router.post("/predict")
-def predict(features: dict) -> dict:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, _NOT_IMPLEMENTED)
+def predict(
+    transaction: TransactionInput, service: AnalysisService = Depends(get_analysis_service)
+) -> dict[str, float]:
+    features = service.extract_features(transaction)
+    return {"mlScore": service.predict(features)}
 
 
 @router.post("/anomaly")
-def detect_anomaly(features: dict) -> dict:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, _NOT_IMPLEMENTED)
+def detect_anomaly(
+    transaction: TransactionInput, service: AnalysisService = Depends(get_analysis_service)
+) -> dict[str, float]:
+    features = service.extract_features(transaction)
+    return {"anomalyScore": service.anomaly_score(features)}
 
 
 @router.get("/model")
-def model_info() -> dict:
-    return {"modelVersion": get_settings().model_version, "status": "not_trained"}
+def model_info(service: AnalysisService = Depends(get_analysis_service)) -> dict:
+    return service.model_info()
